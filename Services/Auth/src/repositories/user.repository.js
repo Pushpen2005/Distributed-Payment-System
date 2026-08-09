@@ -18,6 +18,17 @@ class UserRepository {
         });
         return user;
     }
+    async findById(id) {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: id
+            }
+        });
+        if (!user) {
+            return null; 
+        }
+        return user;    
+    }
 }
 
 export default new UserRepository()

@@ -1,8 +1,12 @@
 import express from "express";
-
-
+import AuthRouter from "./routes/auth.routes.js";
+import errorMiddleware from "./middleware/error.middleware.js";
+import cookieParser from "cookie-parser";
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
+
+app.use("/api/auth", AuthRouter);   
 app.get("/health", (req, res) => {
     res.status(200).json({
         status: "UP",
@@ -11,5 +15,6 @@ app.get("/health", (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+app.use(errorMiddleware);
 
 export default app;

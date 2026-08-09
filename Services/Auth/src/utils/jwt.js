@@ -22,4 +22,26 @@ const verifyAccessToken = (token) => {
     }
 };
 
-export { generateAccessToken, verifyAccessToken };
+const generateRefreshToken = (payload) => {
+    return jwt.sign(
+        payload,
+        process.env.JWT_REFRESH_SECRET,
+        {
+            expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+        }
+    );
+};
+
+const verifyRefreshToken = (token) => {
+    try {
+        return jwt.verify(
+            token,
+            process.env.JWT_REFRESH_SECRET
+        );
+    } catch {
+        throw new UnauthorizedError("Invalid or expired refresh token");
+    }
+};
+    
+
+export { generateAccessToken, verifyAccessToken, generateRefreshToken, verifyRefreshToken };

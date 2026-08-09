@@ -1,4 +1,3 @@
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -6,6 +5,17 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+}
+
+
+enum Role {
+  CUSTOMER
+  MERCHANT
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
 }
 
 model User {
@@ -20,15 +30,22 @@ model User {
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   deletedAt    DateTime? @map("deleted_at") @db.Timestamp(6)
 
-  @@map("users") // Maps the Prisma model name to a lowercase database table if needed
+  sessions Session[]
+
+  @@map("users")
 }
 
-enum Role {
-  CUSTOMER
-  MERCHANT
-}
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash")
 
-enum Status {
-  ACTIVE
-  INACTIVE
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamp(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }

@@ -1,13 +1,17 @@
-import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import userRepository from "../repositories/user.repository.js";
-
+import ConflictError from "../errors/ConflictError.js";
+import UnauthorizedError from "../errors/UnauthorizedError.js";
+import bcrypt from "bcryptjs";
+import {generateAccessToken,generateRefreshToken,verifyRefreshToken} from "../utils/jwt.js";
+import NotFoundError from "../errors/NotFoundError.js";
+import sessionRepository from "../repositories/session.repository.js";
 const AuthService = {
   async register(userData) {
     const existingUser = await userRepository.findByEmail(userData.email);
 
     if (existingUser) {
-      throw new Error("User already exists");
+      throw new ConflictError("User already exists");
     }
 
     const { password, ...userInfo } = userData;
@@ -31,12 +35,55 @@ const AuthService = {
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === "P2002"
       ) {
-        throw new Error("User already exists");
+        throw new ConflictError("User with this email already exists");
       }
 
       throw err;
     }
   },
+
+  async login(email, password) {
+    const user = await userRepository.findByEmail(email);
+
+    if(!user){
+      throw new UnauthorizedError("Invalid email or password");
+    }
+
+    const ispasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if(!ispasswordValid){
+      throw new UnauthorizedError("Invalid email or password");
+    }
+    const accessToken = generateAccessToken({ 
+      sub: user.id,
+      role: user.role
+    });
+    const refreshToken = generateRefreshToken({   
+      sub: user.id
+    });
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const decoded = verifyRefreshToken(refreshToken);
+
+    const expiresAt = new Date(decoded.exp * 1000);
+    const session = await sessionRepository.createSession({
+      userId: user.id,
+      refreshTokenHash: hashedRefreshToken,
+      expiresAt
+    });
+    return {
+      accessToken: accessToken, 
+      refreshToken: refreshToken
+    }
+  },
+  async getUserById(id) {
+    const user = await userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    // Never expose password hash
+    const { passwordHash, ...safeUser } = user;
+    return safeUser;
+  }
 };
 
 export default AuthService;

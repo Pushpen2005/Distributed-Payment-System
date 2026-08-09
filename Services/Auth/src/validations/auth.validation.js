@@ -28,3 +28,16 @@ export const registerSchema = z.object({
     .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits")
     .optional(),
 }).strict();
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email address")
+    .toLowerCase(),
+
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password cannot exceed 100 characters"),
+}).strict();
