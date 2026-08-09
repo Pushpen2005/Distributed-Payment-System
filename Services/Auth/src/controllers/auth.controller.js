@@ -17,15 +17,21 @@ const AuthController = {
         const { email, password } = req.body;
         try {
             const result = await AuthService.login(email, password);
-            res.cookie("accessToken", result.token, {
+            res.cookie("accessToken", result.accessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "strict",
-                maxAge: 15 * 60 * 1000, // 15 minutes (match JWT expiry)
+                maxAge: 15 * 60 * 1000,
+            });
+            res.cookie("refreshToken", result.refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
             });
 
             res.status(200).json({
-                message: result.message,
+                message: "Login successful",
             });
 
         }

@@ -3,7 +3,7 @@ import userRepository from "../repositories/user.repository.js";
 import ConflictError from "../errors/ConflictError.js";
 import UnauthorizedError from "../errors/UnauthorizedError.js";
 import bcrypt from "bcryptjs";
-import {generateAccessToken,generateRefreshToken,verifyRefreshToken} from "../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
 import NotFoundError from "../errors/NotFoundError.js";
 import sessionRepository from "../repositories/session.repository.js";
 const AuthService = {
@@ -45,34 +45,35 @@ const AuthService = {
   async login(email, password) {
     const user = await userRepository.findByEmail(email);
 
-    if(!user){
+    if (!user) {
       throw new UnauthorizedError("Invalid email or password");
     }
 
     const ispasswordValid = await bcrypt.compare(password, user.passwordHash);
 
-    if(!ispasswordValid){
+    if (!ispasswordValid) {
       throw new UnauthorizedError("Invalid email or password");
     }
-    const accessToken = generateAccessToken({ 
+    const accessToken = generateAccessToken({
       sub: user.id,
       role: user.role
     });
-    const refreshToken = generateRefreshToken({   
-      sub: user.id
+    const refreshToken = generateRefreshToken({
+      sub: user.id,
+      sid: session.id
     });
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     const decoded = verifyRefreshToken(refreshToken);
 
     const expiresAt = new Date(decoded.exp * 1000);
-    const session = await sessionRepository.createSession({
+    await sessionRepository.createSession({
       userId: user.id,
       refreshTokenHash: hashedRefreshToken,
       expiresAt
     });
     return {
-      accessToken: accessToken, 
-      refreshToken: refreshToken
+      accessToken,
+      refreshToken
     }
   },
   async getUserById(id) {
