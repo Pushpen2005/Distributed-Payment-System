@@ -159,7 +159,7 @@ const AuthService = {
 
       const decoded = verifyRefreshToken(newRefreshToken);
 
-      await sessionRepository.update(session.id, {
+      await sessionRepository.updateSession(session.id, {
         refreshTokenHash,
         expiresAt: new Date(decoded.exp * 1000),
       });

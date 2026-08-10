@@ -1,4 +1,4 @@
-import prisma from "../config/db.js";
+import {prisma} from "../config/db.js";
 
 class SessionRepository {
 
@@ -16,14 +16,6 @@ class SessionRepository {
         });
     }
 
-    async findByRefreshTokenHash(refreshTokenHash) {
-        return prisma.session.findUnique({
-            where: {
-                refreshTokenHash,
-            },
-        });
-    }
-
     async revokeSession(id) {
         return prisma.session.update({
             where: {
@@ -35,15 +27,7 @@ class SessionRepository {
         });
     }
 
-    async deleteSession(id) {
-        return prisma.session.delete({
-            where: {
-                id,
-            },
-        });
-    }
-
-    async update(id, updateData) {
+    async updateSession(id, updateData) {
         return prisma.session.update({
             where: {
                 id,
