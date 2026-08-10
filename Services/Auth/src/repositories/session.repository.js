@@ -42,6 +42,15 @@ class SessionRepository {
             },
         });
     }
+
+    async update(id, updateData) {
+        return prisma.session.update({
+            where: {
+                id,
+            },
+            data: updateData,
+        });
+    }
 }
 
 export default new SessionRepository();
