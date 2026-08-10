@@ -11,4 +11,6 @@ AuthRouter.post("/login",validate(loginSchema), AuthController.login);
 
 AuthRouter.get("/me",authMiddleware, AuthController.getUser);
 
+AuthRouter.post("/refresh", AuthController.refresh);
+
 export default AuthRouter;
