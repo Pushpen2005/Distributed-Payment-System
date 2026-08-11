@@ -172,6 +172,31 @@ const AuthService = {
       throw new UnauthorizedError("Invalid or expired refresh token.");
     }
   },
+  async logout(refreshToken) {
+    try{
+      if(!refreshToken){
+      throw new UnauthorizedError("Refresh token is required.");
+    }
+    const payload = verifyRefreshToken(refreshToken);
+    const { sid } = payload;
+
+    const session = await sessionRepository.findById(sid);
+    if(!session){
+      throw new UnauthorizedError("Invalid refresh token.");
+    }
+    if(session.revokedAt){
+      return; // Session already revoked, no action needed
+    }
+    await sessionRepository.revokeSession(session.id);
+  }
+  catch (err) {
+    if (err instanceof UnauthorizedError) {
+        throw err;
+    }
+
+    throw err;
+}
+},
 };
 
 export default AuthService;
