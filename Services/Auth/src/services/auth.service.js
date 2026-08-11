@@ -193,7 +193,6 @@ const AuthService = {
     if (err instanceof UnauthorizedError) {
         throw err;
     }
-
     throw err;
 }
 },
