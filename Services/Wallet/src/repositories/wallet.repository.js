@@ -32,6 +32,6 @@ class WalletRepository {
         });
     }
     
-}
+};
 
 export default new WalletRepository();      

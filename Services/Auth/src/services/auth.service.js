@@ -5,9 +5,9 @@ import bcrypt from "bcryptjs";
 import userRepository from "../repositories/user.repository.js";
 import sessionRepository from "../repositories/session.repository.js";
 
-import ConflictError from "../errors/ConflictError.js";
-import UnauthorizedError from "../errors/UnauthorizedError.js";
-import NotFoundError from "../errors/NotFoundError.js";
+import ConflictError from "../../../../shared/errors/ConflictError.js";
+import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
+import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 
 import {
   generateAccessToken,

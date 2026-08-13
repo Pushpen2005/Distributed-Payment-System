@@ -1,5 +1,5 @@
 import {verifyAccessToken} from "../utils/jwt.js";
-import UnauthorizedError from "../errors/UnauthorizedError.js";
+import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 
 const authMiddleware = (req,res,next) => {
     const token = req.cookies.accessToken;

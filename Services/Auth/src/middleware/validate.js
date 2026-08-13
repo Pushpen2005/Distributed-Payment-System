@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import ValidationError from "../errors/ValidationError.js";
+import ValidationError from "../../../../shared/errors/ValidationError.js";
 
 const validate = (schema) => {
   return async (req, res, next) => {

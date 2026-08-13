@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import UnauthorizedError from "../errors/UnauthorizedError.js";
+import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 
 const generateAccessToken = (payload) => {
     return jwt.sign(
