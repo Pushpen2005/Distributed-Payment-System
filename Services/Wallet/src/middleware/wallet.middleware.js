@@ -1,7 +1,7 @@
 import {verifyAccessToken} from "../utils/jwt.js";
 import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 
-const authMiddleware = (req,res,next) => {
+const walletMiddleware = (req,res,next) => {
     const token = req.cookies.accessToken;
     if(!token){
         throw new UnauthorizedError("Access token is missing");
@@ -14,4 +14,4 @@ const authMiddleware = (req,res,next) => {
         next(err);
     }
 }
-export default authMiddleware;
+export default walletMiddleware;
