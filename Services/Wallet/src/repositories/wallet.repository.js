@@ -1,30 +1,30 @@
 
 
 class WalletRepository {
-    async createWallet(db, walletData) {
-        return db.wallet.create({
+    async createWallet(client, walletData) {
+        return client.wallet.create({
             data: walletData,
         });
     }
 
-    async findByUserId(db, userId) {
-        return db.wallet.findUnique({
+    async findByUserId(client, userId) {
+        return client.wallet.findUnique({
             where: {
                 userId,
             },
         });
     }
 
-    async findById(db, id) {
-        return db.wallet.findUnique({
+    async findById(client, id) {
+        return client.wallet.findUnique({
             where: {
                 id,
             },
         });
     }
 
-    async updateBalance(db, id, balance) {
-        return db.wallet.update({
+    async updateBalance(client, id, balance) {
+        return client.wallet.update({
             where: {
                 id,
             },
