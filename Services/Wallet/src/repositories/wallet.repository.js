@@ -1,37 +1,38 @@
-import {prisma} from "../config/db.js";
 
 
 class WalletRepository {
-    async createWallet(walletData) {
-        return prisma.wallet.create({
+    async createWallet(db, walletData) {
+        return db.wallet.create({
             data: walletData,
         });
     }
-    async findByUserId(userId) {
-    return prisma.wallet.findUnique({
-        where: {
-            userId,
-        },
-    });
-}
-    async findById(id) {
-        return prisma.wallet.findUnique({
+
+    async findByUserId(db, userId) {
+        return db.wallet.findUnique({
+            where: {
+                userId,
+            },
+        });
+    }
+
+    async findById(db, id) {
+        return db.wallet.findUnique({
             where: {
                 id,
             },
         });
     }
-    async updateBalance(id, balance) {
-        return prisma.wallet.update({
+
+    async updateBalance(db, id, balance) {
+        return db.wallet.update({
             where: {
                 id,
             },
             data: {
-                balance: balance,
+                balance,
             },
         });
     }
-    
-};
+}
 
-export default new WalletRepository();      
+export default new WalletRepository();
