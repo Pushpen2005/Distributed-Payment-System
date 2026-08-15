@@ -1,40 +1,33 @@
-
-class IdemptonyRepository {
-    async findByUserAndKey(tx, userId, key) {
-        const wallets = await tx.$queryRaw`
+class IdempotencyRepository {
+    async findByUserAndKey(tx, userId, idempotencyKey) {
+        const [record] = await tx.$queryRaw`
             SELECT *
             FROM "idempotency_keys"
-            WHERE "userId" = ${userId} AND "idempotencyKey" = ${key}
+            WHERE "userId" = ${userId}
+              AND "idempotencyKey" = ${idempotencyKey}
             FOR UPDATE
         `;
 
-        return wallets[0] ?? null;
+        return record ?? null;
     }
+
     async createProcessingRecord(tx, processingData) {
         return tx.idempotencyKey.create({
             data: processingData,
         });
     }
-    async updateSuccess(tx, id, result) {
+
+    async updateStatus(tx, id, status, response) {
         return tx.idempotencyKey.update({
             where: {
                 id,
             },
             data: {
-                status: "SUCCESS",
-                response: result,
+                status,
+                response,
             },
         });
     }
-    async updateFailure(tx, id, error) {
-        return tx.idempotencyKey.update({
-            where: {
-                id,
-            },
-            data: {
-                status: "FAILED",
-                response: result,
-            },
-        });
-    }
-};
+}
+
+export default new IdempotencyRepository();
