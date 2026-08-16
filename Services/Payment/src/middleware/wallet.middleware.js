@@ -1,0 +1,17 @@
+import {verifyAccessToken} from "../utils/jwt.js";
+import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
+
+const walletMiddleware = (req,res,next) => {
+    const token = req.cookies.accessToken;
+    if(!token){
+        throw new UnauthorizedError("Access token is missing");
+    }
+    try{
+        const decoded = verifyAccessToken(token);
+        req.user = decoded;
+        next();
+    }catch(err){
+        next(err);
+    }
+}
+export default walletMiddleware;
