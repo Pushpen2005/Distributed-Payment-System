@@ -1,0 +1,81 @@
+enum PaymentStatus {
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+enum Currency {
+  INR
+}
+
+enum PaymentFailureCode {
+  INSUFFICIENT_BALANCE
+  WALLET_NOT_FOUND
+  WALLET_FROZEN
+  SELF_TRANSFER_NOT_ALLOWED
+  INTERNAL_ERROR
+}
+
+model Payment {
+  id               String   @id @default(uuid()) @db.Uuid
+
+  senderWalletId   String   @db.Uuid
+  receiverWalletId String   @db.Uuid
+
+  amount           Decimal  @db.Decimal(18, 2)
+  currency         Currency @default(INR)
+
+  status           PaymentStatus
+
+  // Nullable because it is only populated when status = FAILED
+  failureCode      PaymentFailureCode?
+
+  // Optional business metadata
+  description      String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  senderWallet     Wallet @relation("SenderPayments", fields: [senderWalletId], references: [id])
+  receiverWallet   Wallet @relation("ReceiverPayments", fields: [receiverWalletId], references: [id])
+
+  // One Payment -> Many Ledger Entries
+  ledgers          Ledger[]
+
+  // One Payment <-> One Idempotency Record
+  idempotency      Idempotency?
+
+  // Indexes
+  @@index([senderWalletId])
+  @@index([receiverWalletId])
+  @@index([senderWalletId, createdAt])
+  @@index([status, createdAt])
+
+  @@map("payments")
+}
+
+model Wallet {
+  id String @id @default(uuid()) @db.Uuid
+
+  sentPayments     Payment[] @relation("SenderPayments")
+  receivedPayments Payment[] @relation("ReceiverPayments")
+}
+
+model Ledger {
+  id        String  @id @default(uuid()) @db.Uuid
+
+  paymentId String  @db.Uuid
+  payment   Payment @relation(fields: [paymentId], references: [id])
+}
+
+model Idempotency {
+  id        String @id @default(uuid()) @db.Uuid
+
+  userId    String @db.Uuid
+  key       String
+
+  paymentId String? @unique @db.Uuid
+
+  @@unique([userId, key])
+}
