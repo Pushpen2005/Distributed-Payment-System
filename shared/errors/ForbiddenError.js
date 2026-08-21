@@ -1,10 +1,9 @@
-import AppError from "./AppError.js"; 
+import AppError from "./AppError.js";
 
-
-class ForbiddenErrror extends AppError {
-    constructor(message = "Forbidden") {
-        super(message, 403);
-    }   
+class ForbiddenError extends AppError {
+    constructor(message = "Forbidden", code = null) {
+        super(message, 403, code);
+    }
 }
 
-export default ForbiddenErrror;
+export default ForbiddenError;
