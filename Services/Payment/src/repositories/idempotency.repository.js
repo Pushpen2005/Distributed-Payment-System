@@ -1,10 +1,10 @@
-
 class IdempotencyRepository {
-    async create(tx,data){
+    async create(tx, data) {
         return tx.idempotencyKey.create({
-            data
-        }); 
+            data,
+        });
     }
+
     async findByUserAndKey(tx, userId, idempotencyKey) {
         const [record] = await tx.$queryRaw`
             SELECT *
@@ -16,6 +16,18 @@ class IdempotencyRepository {
 
         return record ?? null;
     }
+
+    async attachPayment(tx, idempotencyRecordId, paymentId) {
+        return tx.idempotencyKey.update({
+            where: {
+                id: idempotencyRecordId,
+            },
+            data: {
+                paymentId,
+            },
+        });
+    }
+
     async updateStatus(tx, id, status, response) {
         return tx.idempotencyKey.update({
             where: {
