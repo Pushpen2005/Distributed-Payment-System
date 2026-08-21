@@ -28,3 +28,5 @@ class IdempotencyRepository {
         });
     }
 }
+
+export default new IdempotencyRepository();

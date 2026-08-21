@@ -36,3 +36,5 @@ class PaymentRepository{
         });
     }
 }
+
+export default new PaymentRepository();
