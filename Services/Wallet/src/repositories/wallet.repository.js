@@ -1,4 +1,4 @@
-
+import { Prisma } from "@prisma/client";
 
 class WalletRepository {
     async createWallet(client, walletData) {
@@ -43,6 +43,15 @@ class WalletRepository {
 
         return wallets[0] ?? null;
     }
+    async findByIdsForUpdate(tx, walletIds) {
+    return tx.$queryRaw`
+        SELECT *
+        FROM "wallets"
+        WHERE "id" IN (${Prisma.join(walletIds)})
+        ORDER BY "id"
+        FOR UPDATE
+    `;
+}
 }
 
 export default new WalletRepository();

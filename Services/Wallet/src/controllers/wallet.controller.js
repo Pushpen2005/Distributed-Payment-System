@@ -55,7 +55,29 @@ const WalletController = {
         catch (error) {
             next(error);
         }
+    },
+    async executeTransfer(req, res, next) {
+    try {
+        const {
+            senderWalletId,
+            receiverWalletId,
+            amount,
+        } = req.body;
+
+        const result = await WalletService.executeTransfer(
+            senderWalletId,
+            receiverWalletId,
+            amount
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
     }
+}
 }
 
 export default WalletController;
