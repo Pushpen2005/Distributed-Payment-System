@@ -11,15 +11,16 @@ const PaymentService = {
     amount,
     idempotencyKey
 ) {
-        const requestHash = `${senderUserId}-${receiverWalletId}-${amount}`;
+        const requestHash =
+    `${senderWalletId}-${receiverWalletId}-${amount}`;
 
         const expiresAt = new Date(
             Date.now() + 5 * 60 * 1000
         );
-
+        let idempotencyRecord;
         try {
             // Try to claim ownership of this idempotency key
-            const idempotencyRecord =
+            idempotencyRecord =
                 await idempotencyRepository.create(prisma, {
                     userId: senderUserId,
                     idempotencyKey,
@@ -28,28 +29,7 @@ const PaymentService = {
                     expiresAt,
                 });
 
-            // INSERT succeeded.
-            // This request owns execution.
-
-            const paymentRecord =
-                await paymentRepository.createPayment(prisma, {
-                    senderWalletId: senderWalletId,
-                    receiverWalletId: receiverWalletId,
-                    amount,
-                    currency: "INR",
-                    status: "PROCESSING",
-                });
-
-            await idempotencyRepository.attachPayment(
-                prisma,
-                idempotencyRecord.id,
-                paymentRecord.id
-            );
-
-            return {
-                status: "PROCESSING",
-                paymentId: paymentRecord.id,
-            };
+            
 
         } catch (error) {
             // Only handle duplicate idempotency keys.
@@ -92,6 +72,25 @@ const PaymentService = {
             // Payment was already finalized.
             return existingRecord.response;
         }
+        const paymentRecord =
+                await paymentRepository.createPayment(prisma, {
+                    senderWalletId: senderWalletId,
+                    receiverWalletId: receiverWalletId,
+                    amount,
+                    currency: "INR",
+                    status: "PROCESSING",
+                });
+
+            await idempotencyRepository.attachPayment(
+                prisma,
+                idempotencyRecord.id,
+                paymentRecord.id
+            );
+
+            return {
+                status: "PROCESSING",
+                paymentId: paymentRecord.id,
+            };
     },
 };
 
