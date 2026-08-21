@@ -137,7 +137,8 @@ const WalletService = {
         // 2. Reject self transfer
         if (senderWalletId === receiverWalletId) {
             throw new BadRequestError(
-                "Self transfer is not allowed."
+                "Self transfer is not allowed.",
+                "SELF_TRANSFER_NOT_ALLOWED"
             );
         }
 
@@ -153,7 +154,8 @@ const WalletService = {
             // 5. Both wallets must exist
             if (wallets.length !== 2) {
                 throw new NotFoundError(
-                    "One or both wallets not found."
+                    "One or both wallets not found.",
+                    "WALLET_NOT_FOUND"
                 );
             }
 
@@ -170,28 +172,32 @@ const WalletService = {
             // Defensive check
             if (!senderWallet || !receiverWallet) {
                 throw new NotFoundError(
-                    "One or both wallets not found."
+                    "One or both wallets not found.",
+                    "WALLET_NOT_FOUND"
                 );
             }
 
             // 7. Validate sender wallet
             if (senderWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
-                    "Sender wallet is not active."
+                    "Sender wallet is not active.",
+                    "WALLET_FROZEN"
                 );
             }
 
             // 8. Validate receiver wallet
             if (receiverWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
-                    "Receiver wallet is not active."
+                    "Receiver wallet is not active.",
+                    "WALLET_FROZEN"
                 );
             }
 
             // 9. Check sender balance
             if (senderWallet.balance.lessThan(amount)) {
                 throw new BadRequestError(
-                    "Insufficient funds."
+                    "Insufficient funds.",
+                    "INSUFFICIENT_BALANCE"
                 );
             }
 
