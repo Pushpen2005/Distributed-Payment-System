@@ -3,6 +3,7 @@ import walletClient from "../clients/wallet.client.js";
 import idempotencyRepository from "../repositories/idempotency.repository.js";
 import paymentRepository from "../repositories/payment.repository.js";
 import { prisma } from "../config/db.js";
+import BadRequestError from "../../../../shared/errors/BadRequestError.js";
 
 const PaymentService = {
     async transferPayment(
@@ -56,8 +57,9 @@ const PaymentService = {
 
             // Same key cannot be reused with a different request.
             if (existingRecord.requestHash !== requestHash) {
-                throw new Error(
-                    "Idempotency key was already used with a different request"
+                throw new BadRequestError(
+                    "Idempotency key has already been used with a different request.",
+                    "IDEMPOTENCY_KEY_REUSED"
                 );
             }
 
@@ -87,21 +89,56 @@ const PaymentService = {
             idempotencyRecord.id,
             paymentRecord.id
         );
-        const walletResult = await walletClient.executeTransfer({
-            senderWalletId,
-            receiverWalletId,
-            amount,
-        });
-        await paymentRepository.updateStatus(
-            prisma,
-            paymentRecord.id,
-            "SUCCESS"
-        );
-        return {
-            status: "SUCCESS",
-            paymentId: paymentRecord.id,
-            walletResult,
-        };
+        try {
+            const walletResult = await walletClient.executeTransfer({
+                senderWalletId,
+                receiverWalletId,
+                amount,
+            });
+
+            await paymentRepository.updateStatus(
+                prisma,
+                paymentRecord.id,
+                "SUCCESS"
+            );
+
+            const response = {
+                status: "SUCCESS",
+                paymentId: paymentRecord.id,
+                walletResult,
+            };
+
+            await idempotencyRepository.updateStatus(
+                prisma,
+                idempotencyRecord.id,
+                "SUCCESS",
+                response
+            );
+
+            return response;
+        } catch (error) {
+            const errorMessage = {
+                status: "FAILED",
+                paymentId: paymentRecord.id,
+                message: error.message || "Payment failed.",
+                code: error.code || "INTERNAL_ERROR"
+            };
+            await paymentRepository.updateStatus(
+                prisma,
+                paymentRecord.id,
+                "FAILED",
+                error.code || "INTERNAL_ERROR"
+            );
+
+            await idempotencyRepository.updateStatus(
+                prisma,
+                idempotencyRecord.id,
+                "FAILED",
+                errorMessage
+            );
+
+            throw error;
+        }
     },
 };
 

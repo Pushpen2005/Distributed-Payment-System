@@ -1,4 +1,4 @@
-import AppError from "../../../../shared/errors/AppError.js";
+
 const errorMiddleware = (err, req, res, next) => {
     console.error(err);
 
