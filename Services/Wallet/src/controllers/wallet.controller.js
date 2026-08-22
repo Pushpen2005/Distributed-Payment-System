@@ -57,27 +57,43 @@ const WalletController = {
         }
     },
     async executeTransfer(req, res, next) {
-    try {
-        const {
-            senderWalletId,
-            receiverWalletId,
-            amount,
-        } = req.body;
+        try {
+            const {
+                senderWalletId,
+                receiverWalletId,
+                amount,
+            } = req.body;
 
-        const result = await WalletService.executeTransfer(
-            senderWalletId,
-            receiverWalletId,
-            amount
-        );
+            const result = await WalletService.executeTransfer(
+                senderWalletId,
+                receiverWalletId,
+                amount
+            );
 
-        return res.status(200).json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        next(error);
+            return res.status(200).json({
+                success: true,
+                data: result,
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+    async verifyOwnership(req, res, next) {
+        try {
+            const { senderUserId, senderWalletId } = req.body;
+            const ownsWallet = await WalletService.verifyOwnership(senderUserId, senderWalletId);
+            return res.status(200).json({
+                success: true,
+                message: "Ownership verified successfully",
+                data: {
+                    ownsWallet: true
+                },
+            });
+        }
+        catch (error) {
+            next(error);
+        }
     }
-}
-}
+};
 
 export default WalletController;

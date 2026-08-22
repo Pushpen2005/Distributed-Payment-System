@@ -13,4 +13,6 @@ walletRouter.post(
     "/internal/wallets/transfer",
     WalletController.executeTransfer
 );
+walletRouter.post("/internal/wallets/verify-ownership", WalletController.verifyOwnership);
+
 export default walletRouter;

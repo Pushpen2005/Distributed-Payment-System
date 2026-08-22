@@ -231,6 +231,28 @@ const WalletService = {
             };
         });
     },
+    async verifyOwnership(userId, senderWalletId) {
+            const wallet = await WalletRepository.findById(
+                prisma,
+                senderWalletId
+            );
+            if(!wallet){
+                throw new NotFoundError(
+                    "Wallet not found.",
+                    "WALLET_NOT_FOUND"
+                );
+            }
+            if(wallet.userId !== userId){
+                throw new ForbiddenError(
+                    "User does not own the wallet.",
+                    "WALLET_OWNERSHIP_MISMATCH"
+                );
+            }
+            const result = {
+                ownsWallet: true,
+            }
+            return result;
+        }
 };
 
 export default WalletService;
