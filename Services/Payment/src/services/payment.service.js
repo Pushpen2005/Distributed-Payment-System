@@ -96,6 +96,7 @@ const PaymentService = {
                 amount,
             });
 
+            
             await paymentRepository.updateStatus(
                 prisma,
                 paymentRecord.id,
