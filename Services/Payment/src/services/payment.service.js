@@ -190,7 +190,6 @@ const PaymentService = {
             "FAILED",
             failureResponse
         );
-
         throw error;
     }
 },
