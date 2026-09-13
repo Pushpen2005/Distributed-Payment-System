@@ -189,7 +189,7 @@ const PaymentService = {
             idempotencyRecord.id,
             "FAILED",
             failureResponse
-        );
+        ); 
         throw error;
     }
 },
