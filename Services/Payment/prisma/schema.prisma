@@ -20,6 +20,10 @@ enum IdempotencyStatus {
 SUCCESS
 FAILED
 }
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
 model Payment {
   id               String   @id @default(uuid()) @db.Uuid
 
@@ -50,9 +54,16 @@ model Payment {
 
 model Ledger {
   id        String  @id @default(uuid()) @db.Uuid
-
   paymentId String  @db.Uuid
-  payment   Payment @relation(fields: [paymentId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id]) 
+  walletId String @db.Uuid
+wallet   Wallet @relation(fields: [walletId], references: [id])
+  type      LedgerEntryType 
+  amount    Decimal @db.Decimal(18, 2)
+  currency  Currency @default(INR)
+  createdAt DateTime @default(now())
+@@index([paymentId])
+@@index([walletId, createdAt])
 }
 model IdempotencyKey {
   id              String             @id @default(uuid()) @db.Uuid
