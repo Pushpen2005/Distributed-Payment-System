@@ -140,58 +140,59 @@ const PaymentService = {
 
         throw error;
     }
+try {
+    const walletResult = await walletClient.executeTransfer({
+        paymentId: paymentRecord.id,
+        senderWalletId,
+        receiverWalletId,
+        amount,
+    });
 
-    try {
-        const walletResult =
-            await walletClient.executeTransfer({
-                senderWalletId,
-                receiverWalletId,
-                amount,
-            });
+    await paymentRepository.updateStatus(
+        prisma,
+        paymentRecord.id,
+        "SUCCESS"
+    );
 
-        await paymentRepository.updateStatus(
-            prisma,
-            paymentRecord.id,
-            "SUCCESS"
-        );
+    const response = {
+        status: "SUCCESS",
+        paymentId: paymentRecord.id,
+        walletResult,
+    };
 
-        const response = {
-            status: "SUCCESS",
-            paymentId: paymentRecord.id,
-            walletResult,
-        };
+    await idempotencyRepository.updateStatus(
+        prisma,
+        idempotencyRecord.id,
+        "SUCCESS",
+        response
+    );
 
-        await idempotencyRepository.updateStatus(
-            prisma,
-            idempotencyRecord.id,
-            "SUCCESS",
-            response
-        );
+    return response;
+} catch (error) {
+    const failureResponse = {
+        status: "FAILED",
+        paymentId: paymentRecord.id,
+        message: error.message || "Payment failed.",
+        code: error.code || "INTERNAL_ERROR",
+    };
 
-        return response;
-    } catch (error) {
-        const failureResponse = {
-            status: "FAILED",
-            paymentId: paymentRecord.id,
-            message: error.message || "Payment failed.",
-            code: error.code || "INTERNAL_ERROR",
-        };
+    await paymentRepository.updateStatus(
+        prisma,
+        paymentRecord.id,
+        "FAILED",
+        error.code || "INTERNAL_ERROR"
+    );
 
-        await paymentRepository.updateStatus(
-            prisma,
-            paymentRecord.id,
-            "FAILED",
-            error.code || "INTERNAL_ERROR"
-        );
+    await idempotencyRepository.updateStatus(
+        prisma,
+        idempotencyRecord.id,
+        "FAILED",
+        failureResponse
+    );
 
-        await idempotencyRepository.updateStatus(
-            prisma,
-            idempotencyRecord.id,
-            "FAILED",
-            failureResponse
-        ); 
-        throw error;
-    }
+    throw error;
+}
+
 },
 };
 

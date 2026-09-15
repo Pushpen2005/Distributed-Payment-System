@@ -59,12 +59,14 @@ const WalletController = {
     async executeTransfer(req, res, next) {
         try {
             const {
+                paymentId,
                 senderWalletId,
                 receiverWalletId,
                 amount,
             } = req.body;
 
             const result = await WalletService.executeTransfer(
+                paymentId,
                 senderWalletId,
                 receiverWalletId,
                 amount

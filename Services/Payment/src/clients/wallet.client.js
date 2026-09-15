@@ -5,6 +5,7 @@ const WALLET_SERVICE_URL =
 
 const walletClient = {
     async executeTransfer({
+        paymentId,
         senderWalletId,
         receiverWalletId,
         amount,
@@ -13,6 +14,7 @@ const walletClient = {
             const response = await axios.post(
                 `${WALLET_SERVICE_URL}/internal/wallets/transfer`,
                 {
+                    paymentId,
                     senderWalletId,
                     receiverWalletId,
                     amount,
@@ -20,7 +22,6 @@ const walletClient = {
             );
 
             return response.data.data;
-
         } catch (error) {
             if (error.response) {
                 const { message, code } = error.response.data;
@@ -38,6 +39,7 @@ const walletClient = {
             throw new Error("Wallet service is unavailable.");
         }
     },
+
     async verifyOwnership({ senderUserId, senderWalletId }) {
         try {
             const response = await axios.post(
@@ -49,7 +51,6 @@ const walletClient = {
             );
 
             return response.data.data;
-
         } catch (error) {
             if (error.response) {
                 const { message, code } = error.response.data;
@@ -70,3 +71,4 @@ const walletClient = {
 };
 
 export default walletClient;
+
