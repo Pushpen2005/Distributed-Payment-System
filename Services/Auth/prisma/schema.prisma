@@ -38,7 +38,7 @@ model User {
 model Session {
   id               String    @id @default(uuid()) @db.Uuid
   userId           String    @db.Uuid
-  refreshTokenHash String    @unique @map("refresh_token_hash")
+  refreshTokenHash String @unique
 
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   expiresAt        DateTime  @map("expires_at") @db.Timestamp(6)
