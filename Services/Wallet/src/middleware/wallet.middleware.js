@@ -1,17 +1,34 @@
-import {verifyAccessToken} from "../utils/jwt.js";
+import { verifyAccessToken } from "../utils/jwt.js";
 import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 
-const walletMiddleware = (req,res,next) => {
-    const token = req.cookies.accessToken;
-    if(!token){
-        throw new UnauthorizedError("Access token is missing");
+const walletMiddleware = (req, res, next) => {
+    console.log("WALLET AUTH HEADER:", req.headers.authorization);
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        console.log("NO AUTH HEADER");
+        return next(
+            new UnauthorizedError("Access token is missing")
+        );
     }
-    try{
+
+    const token = authHeader.split(" ")[1];
+
+    console.log("TOKEN RECEIVED:", !!token);
+
+    try {
         const decoded = verifyAccessToken(token);
+
+        console.log("TOKEN VERIFIED:", decoded);
+
         req.user = decoded;
+
         next();
-    }catch(err){
+    } catch (err) {
+        console.log("TOKEN VERIFY ERROR:", err);
         next(err);
     }
-}
+};
+
 export default walletMiddleware;
