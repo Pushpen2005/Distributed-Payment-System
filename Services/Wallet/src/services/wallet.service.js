@@ -1,5 +1,5 @@
 import WalletRepository from "../repositories/wallet.repository.js";
-
+import LedgerRepository from "../repositories/ledger.repository.js";
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 import ForbiddenError from "../../../../shared/errors/ForbiddenError.js";
@@ -123,6 +123,7 @@ const WalletService = {
 
     // Used by Payment Service to move money safely
     async executeTransfer(
+        paymentId,
         senderWalletId,
         receiverWalletId,
         amount
@@ -144,6 +145,7 @@ const WalletService = {
 
         // 3. Start atomic transaction
         return prisma.$transaction(async (tx) => {
+
             // 4. Lock both wallets
             const wallets =
                 await WalletRepository.findByIdsForUpdate(
@@ -159,7 +161,7 @@ const WalletService = {
                 );
             }
 
-            // 6. ORDER BY id means we cannot assume
+            // ORDER BY id means we cannot assume
             // wallets[0] is the sender
             const senderWallet = wallets.find(
                 (wallet) => wallet.id === senderWalletId
@@ -177,7 +179,7 @@ const WalletService = {
                 );
             }
 
-            // 7. Validate sender wallet
+            // 6. Validate sender wallet
             if (senderWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
                     "Sender wallet is not active.",
@@ -185,7 +187,7 @@ const WalletService = {
                 );
             }
 
-            // 8. Validate receiver wallet
+            // 7. Validate receiver wallet
             if (receiverWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
                     "Receiver wallet is not active.",
@@ -193,7 +195,7 @@ const WalletService = {
                 );
             }
 
-            // 9. Check sender balance
+            // 8. Check sender balance
             if (senderWallet.balance.lessThan(amount)) {
                 throw new BadRequestError(
                     "Insufficient funds.",
@@ -201,29 +203,48 @@ const WalletService = {
                 );
             }
 
-            // 10. Calculate new balances
+            // 9. Calculate new balances
             const senderNewBalance =
                 senderWallet.balance.minus(amount);
 
             const receiverNewBalance =
                 receiverWallet.balance.plus(amount);
 
-            // 11. Debit sender
+            // 10. Debit sender
             await WalletRepository.updateBalance(
                 tx,
                 senderWallet.id,
                 senderNewBalance
             );
 
-            // 12. Credit receiver
+            // 11. Credit receiver
             await WalletRepository.updateBalance(
                 tx,
                 receiverWallet.id,
                 receiverNewBalance
             );
 
-            // If we reach here, both updates commit together
+            // 12. Create ledger entries
+            await LedgerRepository.createEntries(tx, [
+                {
+                    paymentId,
+                    walletId: senderWallet.id,
+                    type: "DEBIT",
+                    amount,
+                    currency: "INR",
+                },
+                {
+                    paymentId,
+                    walletId: receiverWallet.id,
+                    type: "CREDIT",
+                    amount,
+                    currency: "INR",
+                },
+            ]);
+
+            // 13. Return successful transfer
             return {
+                paymentId,
                 senderWalletId: senderWallet.id,
                 receiverWalletId: receiverWallet.id,
                 amount,
@@ -231,28 +252,29 @@ const WalletService = {
             };
         });
     },
+
     async verifyOwnership(userId, senderWalletId) {
-            const wallet = await WalletRepository.findById(
-                prisma,
-                senderWalletId
+        const wallet = await WalletRepository.findById(
+            prisma,
+            senderWalletId
+        );
+        if (!wallet) {
+            throw new NotFoundError(
+                "Wallet not found.",
+                "WALLET_NOT_FOUND"
             );
-            if(!wallet){
-                throw new NotFoundError(
-                    "Wallet not found.",
-                    "WALLET_NOT_FOUND"
-                );
-            }
-            if(wallet.userId !== userId){
-                throw new ForbiddenError(
-                    "User does not own the wallet.",
-                    "WALLET_OWNERSHIP_MISMATCH"
-                );
-            }
-            const result = {
-                ownsWallet: true,
-            }
-            return result;
         }
+        if (wallet.userId !== userId) {
+            throw new ForbiddenError(
+                "User does not own the wallet.",
+                "WALLET_OWNERSHIP_MISMATCH"
+            );
+        }
+        const result = {
+            ownsWallet: true,
+        }
+        return result;
+    }
 };
 
 export default WalletService;
