@@ -1,10 +1,9 @@
 import { Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-
+import crypto from "crypto";
 import userRepository from "../repositories/user.repository.js";
 import sessionRepository from "../repositories/session.repository.js";
-
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
@@ -54,36 +53,40 @@ const AuthService = {
     }
 
     const isPasswordValid = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
+    password,
+    user.passwordHash
+);
 
     if (!isPasswordValid) {
       throw new UnauthorizedError("Invalid email or password");
     }
 
-    // Create session first
-    const session = await sessionRepository.createSession({
+    // Generate session ID before generating the refresh token
+    const sessionId = crypto.randomUUID();
+
+    // Generate refresh token using the session ID
+    const refreshToken = generateRefreshToken({
+      sub: user.id,
+      sid: sessionId,
+    });
+
+    // Hash refresh token before storing it
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+    // Get expiration from JWT
+    const decoded = verifyRefreshToken(refreshToken);
+
+    // Create complete session in one operation
+    await sessionRepository.createSession({
+      id: sessionId,
       userId: user.id,
+      refreshTokenHash,
+      expiresAt: new Date(decoded.exp * 1000),
     });
 
     const accessToken = generateAccessToken({
       sub: user.id,
       role: user.role,
-    });
-
-    const refreshToken = generateRefreshToken({
-      sub: user.id,
-      sid: session.id,
-    });
-
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-
-    const decoded = verifyRefreshToken(refreshToken);
-
-    await sessionRepository.update(session.id, {
-      refreshTokenHash,
-      expiresAt: new Date(decoded.exp * 1000),
     });
 
     return {
@@ -105,7 +108,7 @@ const AuthService = {
 
   async refresh(refreshToken) {
     try {
-      if(!refreshToken){
+      if (!refreshToken) {
         throw new UnauthorizedError("Refresh token is required.");
       }
       const payload = verifyRefreshToken(refreshToken);
@@ -173,29 +176,29 @@ const AuthService = {
     }
   },
   async logout(refreshToken) {
-    try{
-      if(!refreshToken){
-      throw new UnauthorizedError("Refresh token is required.");
-    }
-    const payload = verifyRefreshToken(refreshToken);
-    const { sid } = payload;
+    try {
+      if (!refreshToken) {
+        throw new UnauthorizedError("Refresh token is required.");
+      }
+      const payload = verifyRefreshToken(refreshToken);
+      const { sid } = payload;
 
-    const session = await sessionRepository.findById(sid);
-    if(!session){
-      throw new UnauthorizedError("Invalid refresh token.");
+      const session = await sessionRepository.findById(sid);
+      if (!session) {
+        throw new UnauthorizedError("Invalid refresh token.");
+      }
+      if (session.revokedAt) {
+        return; // Session already revoked, no action needed
+      }
+      await sessionRepository.revokeSession(session.id);
     }
-    if(session.revokedAt){
-      return; // Session already revoked, no action needed
-    }
-    await sessionRepository.revokeSession(session.id);
-  }
-  catch (err) {
-    if (err instanceof UnauthorizedError) {
+    catch (err) {
+      if (err instanceof UnauthorizedError) {
         throw err;
+      }
+      throw err;
     }
-    throw err;
-}
-},
+  },
 };
 
 export default AuthService;
