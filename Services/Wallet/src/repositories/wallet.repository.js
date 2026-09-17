@@ -44,13 +44,17 @@ class WalletRepository {
   return wallets[0] ?? null;
 }
     async findByIdsForUpdate(tx, walletIds) {
-    return tx.$queryRaw`
-        SELECT *
-        FROM "wallets"
-        WHERE "id" IN (${Prisma.join(walletIds)})
-        ORDER BY "id"
-        FOR UPDATE
-    `;
+  return tx.$queryRaw`
+    SELECT *
+    FROM "wallets"
+    WHERE "id" IN (
+      ${Prisma.join(
+        walletIds.map((id) => Prisma.sql`CAST(${id} AS uuid)`)
+      )}
+    )
+    ORDER BY "id"
+    FOR UPDATE
+  `;
 }
 }
 

@@ -16,41 +16,39 @@ enum WalletStatus {
   FROZEN
   CLOSED
 }
+
 enum LedgerEntryType {
   DEBIT
   CREDIT
 }
+
 model Wallet {
-  id         String       @id @default(uuid()) @db.Uuid
+  id       String       @id @default(uuid()) @db.Uuid
+  userId   String       @unique @db.Uuid
+  balance  Decimal      @default(0.00) @db.Decimal(18, 2)
+  currency Currency     @default(INR)
+  status   WalletStatus @default(ACTIVE)
 
-  // User ID from Auth Service
-  // No foreign key because Auth and Wallet have separate databases
-  userId     String       @unique @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
 
-  balance    Decimal      @default(0.00) @db.Decimal(18, 2)
-
-  currency   Currency     @default(INR)
-
-  status     WalletStatus @default(ACTIVE)
-
-  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamp(6)
+  ledgers Ledger[]
 
   @@index([status])
   @@map("wallets")
 }
 
-
 model Ledger {
-  id        String  @id @default(uuid()) @db.Uuid
-  paymentId String  @db.Uuid
-  payment Payment @relation(fields: [paymentId], references: [id]) 
-  walletId String @db.Uuid
-wallet   Wallet @relation(fields: [walletId], references: [id])
-  type      LedgerEntryType 
-  amount    Decimal @db.Decimal(18, 2)
-  currency  Currency @default(INR)
-  createdAt DateTime @default(now())
-@@index([paymentId])
-@@index([walletId, createdAt])
+  id        String          @id @default(uuid()) @db.Uuid
+  paymentId String          @db.Uuid
+  walletId  String          @db.Uuid
+  type      LedgerEntryType
+  amount    Decimal         @db.Decimal(18,2)
+  currency  Currency        @default(INR)
+  createdAt DateTime        @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([paymentId])
+  @@index([walletId, createdAt])
 }
