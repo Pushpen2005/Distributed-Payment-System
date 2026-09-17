@@ -10,7 +10,7 @@ class WalletRepository {
     async findByUserId(client, userId) {
         return client.wallet.findUnique({
             where: {
-                userId,
+                userId, 
             },
         });
     }
