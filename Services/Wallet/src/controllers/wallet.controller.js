@@ -3,7 +3,7 @@ import WalletService from "../services/wallet.service.js";
 const WalletController = {
     async createWallet(req, res, next) {
         try {
-            const userId = req.user.id; // Assuming user ID is available in the request object
+            const userId = req.user.sub; // Assuming user ID is available in the request object
             const wallet = await WalletService.createWallet(userId);
             res.status(201).json({
                 message: "Wallet created successfully",
@@ -15,7 +15,7 @@ const WalletController = {
     },
     async getWallet(req, res, next) {
         try {
-            const userId = req.user.id;
+            const userId = req.user.sub;
             const wallet = await WalletService.getWallet(userId);
             res.status(200).json({
                 message: "Wallet fetched successfully",
@@ -28,7 +28,7 @@ const WalletController = {
     },
     async deposit(req, res, next) {
         try {
-            const userId = req.user.id;
+            const userId = req.user.sub;
             const { amount } = req.body;
             const wallet = await WalletService.deposit(userId, amount);
             res.status(200).json({
@@ -43,7 +43,7 @@ const WalletController = {
     },
     async withdraw(req, res, next) {
         try {
-            const userId = req.user.id;
+            const userId = req.user.sub;
             const { amount } = req.body;
             const wallet = await WalletService.withdraw(userId, amount);
             res.status(200).json({

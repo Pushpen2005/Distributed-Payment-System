@@ -34,15 +34,15 @@ class WalletRepository {
         });
     }
     async findByUserIdForUpdate(tx, userId) {
-        const wallets = await tx.$queryRaw`
-            SELECT *
-            FROM "wallets"
-            WHERE "userId" = ${userId}
-            FOR UPDATE
-        `;
+  const wallets = await tx.$queryRaw`
+    SELECT *
+    FROM "wallets"
+    WHERE "userId" = CAST(${userId} AS uuid)
+    FOR UPDATE
+  `;
 
-        return wallets[0] ?? null;
-    }
+  return wallets[0] ?? null;
+}
     async findByIdsForUpdate(tx, walletIds) {
     return tx.$queryRaw`
         SELECT *
