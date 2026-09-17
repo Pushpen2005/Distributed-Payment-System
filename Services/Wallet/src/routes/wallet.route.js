@@ -9,10 +9,7 @@ walletRouter.post('/create', walletMiddleware, validate(createWalletSchema), Wal
 walletRouter.get('/', walletMiddleware, WalletController.getWallet);
 walletRouter.post('/deposit', walletMiddleware, validate(depositSchema), WalletController.deposit);
 walletRouter.post('/withdraw', walletMiddleware, validate(withdrawSchema), WalletController.withdraw);
-walletRouter.post(
-    "/internal/wallets/transfer",
-    WalletController.executeTransfer
-);
+walletRouter.post("/internal/wallets/transfer",WalletController.executeTransfer);
 walletRouter.post("/internal/wallets/verify-ownership", WalletController.verifyOwnership);
 
 export default walletRouter;
