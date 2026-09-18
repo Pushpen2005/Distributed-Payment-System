@@ -22,7 +22,7 @@ const PaymentService = {
         );
     }
 
-    // Verify wallet ownership first
+    //Verify wallet ownership first
     const verifyOwnershipResult =
         await walletClient.verifyOwnership({
             senderUserId,
