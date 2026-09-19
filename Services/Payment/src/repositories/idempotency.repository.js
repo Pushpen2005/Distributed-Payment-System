@@ -6,16 +6,15 @@ class IdempotencyRepository {
     }
 
     async findByUserAndKey(tx, userId, idempotencyKey) {
-        const [record] = await tx.$queryRaw`
-            SELECT *
-            FROM "idempotency_keys"
-            WHERE "userId" = ${userId}
-              AND "idempotencyKey" = ${idempotencyKey}
-            FOR UPDATE
-        `;
+  const [record] = await tx.$queryRaw`
+    SELECT *
+    FROM "idempotency_keys"
+    WHERE "userId" = ${userId}::uuid
+      AND "idempotencyKey" = ${idempotencyKey}
+  `;
 
-        return record ?? null;
-    }
+  return record;
+}
 
     async attachPayment(tx, idempotencyRecordId, paymentId) {
         return tx.idempotencyKey.update({

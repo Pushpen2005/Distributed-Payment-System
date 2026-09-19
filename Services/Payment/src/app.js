@@ -1,5 +1,5 @@
 import express from "express";
-import errorMiddleware from "../../../../shared/middleware/errorMiddleware.js";
+import errorMiddleware from "../src/middleware/error.middleware.js";
 import paymentRouter from "./routes/payment.route.js";
 const app = express();
 

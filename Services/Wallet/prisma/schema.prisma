@@ -1,54 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model sessions {
+  id                 String    @id @db.Uuid
+  userId             String    @db.Uuid
+  refresh_token_hash String
+  created_at         DateTime  @default(now()) @db.Timestamp(6)
+  expires_at         DateTime  @db.Timestamp(6)
+  revoked_at         DateTime? @db.Timestamp(6)
+  users              users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
-enum Currency {
-  INR
+model users {
+  id            String     @id @db.Uuid
+  name          String     @db.VarChar(100)
+  email         String     @unique @db.VarChar(255)
+  phone         String?    @unique @db.VarChar(15)
+  password_hash String
+  role          Role       @default(CUSTOMER)
+  status        Status     @default(ACTIVE)
+  created_at    DateTime   @default(now()) @db.Timestamp(6)
+  updated_at    DateTime   @default(now()) @db.Timestamp(6)
+  deleted_at    DateTime?  @db.Timestamp(6)
+  sessions      sessions[]
 }
 
-enum WalletStatus {
+enum Role {
+  CUSTOMER
+  MERCHANT
+}
+
+enum Status {
   ACTIVE
-  FROZEN
-  CLOSED
-}
-
-enum LedgerEntryType {
-  DEBIT
-  CREDIT
-}
-
-model Wallet {
-  id       String       @id @default(uuid()) @db.Uuid
-  userId   String       @unique @db.Uuid
-  balance  Decimal      @default(0.00) @db.Decimal(18, 2)
-  currency Currency     @default(INR)
-  status   WalletStatus @default(ACTIVE)
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
-
-  ledgers Ledger[]
-
-  @@index([status])
-  @@map("wallets")
-}
-
-model Ledger {
-  id        String          @id @default(uuid()) @db.Uuid
-  paymentId String          @db.Uuid
-  walletId  String          @db.Uuid
-  type      LedgerEntryType
-  amount    Decimal         @db.Decimal(18,2)
-  currency  Currency        @default(INR)
-  createdAt DateTime        @default(now())
-
-  wallet Wallet @relation(fields: [walletId], references: [id])
-
-  @@index([paymentId])
-  @@index([walletId, createdAt])
+  INACTIVE
 }

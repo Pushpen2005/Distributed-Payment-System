@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const WALLET_SERVICE_URL =
-    process.env.WALLET_SERVICE_URL || "http://localhost:5000";
+    process.env.WALLET_SERVICE_URL || "http://localhost:5001/wallet";
 
 const walletClient = {
     async executeTransfer({

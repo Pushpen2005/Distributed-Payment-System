@@ -1,10 +1,15 @@
 import { Router } from "express";
 import PaymentController from "../controllers/payment.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import paymentMiddleware from "../middleware/payment.middleware.js";
 import validate from "../middleware/validate.js";
-import { transferPaymentSchema } from "../validations/payment.validation.js";
+import { transferPaymentSchema,paymentHeadersSchema } from "../validations/payment.validation.js";
 const paymentRouter = Router();
 
-paymentRouter.post("/transfer", authMiddleware, validate(transferPaymentSchema), PaymentController.transferPayment);
+paymentRouter.post(
+    "/transfer",
+    paymentMiddleware,
+    validate(transferPaymentSchema, paymentHeadersSchema),
+    PaymentController.transferPayment
+);
 
 export default paymentRouter;

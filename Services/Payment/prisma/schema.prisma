@@ -1,3 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 enum PaymentStatus {
   PROCESSING
   SUCCESS
@@ -35,8 +43,6 @@ model Payment {
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
-  ledgers          Ledger[]
 
   idempotency      IdempotencyKey?
 

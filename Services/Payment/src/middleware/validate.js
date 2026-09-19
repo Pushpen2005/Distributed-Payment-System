@@ -1,29 +1,34 @@
 import { ZodError } from "zod";
 import ValidationError from "../../../../shared/errors/ValidationError.js";
 
-const validate = (schema) => {
-  return async (req, res, next) => {
+const validate = (bodySchema, headersSchema) => (req, res, next) => {
     try {
-      req.body = await schema.parseAsync(req.body);
-      next();
-    } catch (err) {
-      if (err instanceof ZodError) {
-        const validationErrors = err.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
+        bodySchema?.parse(req.body);
+        headersSchema?.parse(req.headers);
+
+        next();
+    }  catch (error) {
+    if (error instanceof ZodError) {
+
+        console.log("========== ZOD VALIDATION ERROR ==========");
+        console.log(JSON.stringify(error.issues, null, 2));
+        console.log("==========================================");
+
+        const validationErrors = error.issues.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
         }));
 
-        return next(
-          new ValidationError(
-            "Validation failed",
-            validationErrors
-          )
+        next(
+            new ValidationError(
+                "Validation failed",
+                validationErrors
+            )
         );
-      }
-
-      return next(err);
+    } else {
+        next(error);
     }
-  };
+}
 };
 
 export default validate;
