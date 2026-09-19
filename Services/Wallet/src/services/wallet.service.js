@@ -274,7 +274,53 @@ const WalletService = {
             ownsWallet: true,
         }
         return result;
-    }
+    },
+
+    async getTransferStatus(paymentId) {
+  const ledgerEntries = await LedgerRepository.findByPaymentId(
+    prisma,
+    paymentId
+  );
+
+  if (ledgerEntries.length === 0) {
+    return {
+      paymentId,
+      found: false,
+      status: null,
+    };
+  }
+
+  if (ledgerEntries.length !== 2) {
+    throw new InternalServerError(
+      "Invalid ledger state for this payment.",
+      "INVALID_LEDGER_STATE"
+    );
+  }
+
+  const debitEntry = ledgerEntries.find(
+    (entry) => entry.type === "DEBIT"
+  );
+
+  const creditEntry = ledgerEntries.find(
+    (entry) => entry.type === "CREDIT"
+  );
+
+  if (!debitEntry || !creditEntry) {
+    throw new InternalServerError(
+      "Incomplete ledger entries for this payment.",
+      "INCOMPLETE_LEDGER_ENTRIES"
+    );
+  }
+
+  return {
+    paymentId,
+    found: true,
+    senderWalletId: debitEntry.walletId,
+    receiverWalletId: creditEntry.walletId,
+    amount: debitEntry.amount,
+    status: "SUCCESS",
+  };
+}
 };
 
 export default WalletService;

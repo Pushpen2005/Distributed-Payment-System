@@ -11,5 +11,5 @@ walletRouter.post('/deposit', walletMiddleware, validate(depositSchema), WalletC
 walletRouter.post('/withdraw', walletMiddleware, validate(withdrawSchema), WalletController.withdraw);
 walletRouter.post("/internal/wallets/transfer",WalletController.executeTransfer);
 walletRouter.post("/internal/wallets/verify-ownership", WalletController.verifyOwnership);
-
+walletRouter.get("/internal/wallets/transfers/:paymentId", WalletController.getTransferStatus);
 export default walletRouter;

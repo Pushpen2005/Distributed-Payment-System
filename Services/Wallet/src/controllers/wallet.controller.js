@@ -95,7 +95,22 @@ const WalletController = {
         catch (error) {
             next(error);
         }
+    },
+    async getTransferStatus(req, res, next) {
+        try {
+            const { paymentId } = req.params;
+            const transferStatus = await WalletService.getTransferStatus(paymentId);
+            return res.status(200).json({
+                success: true,
+                message: "Transfer status fetched successfully",
+                data: transferStatus,
+            }); 
+        }
+        catch (error) {
+            next(error);    
+        }
     }
+
 };
 
 export default WalletController;
