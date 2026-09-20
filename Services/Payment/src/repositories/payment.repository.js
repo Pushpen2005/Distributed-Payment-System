@@ -38,6 +38,17 @@ class PaymentRepository {
             },
         });
     }
+    async findProcessingPayments(tx, limit = 100) {
+        return tx.payment.findMany({
+            where: {
+                status: "PROCESSING",
+            },
+            orderBy: {
+                createdAt: "asc",
+            },
+            take: limit,
+        });
+    }
 }
 
 export default new PaymentRepository();
