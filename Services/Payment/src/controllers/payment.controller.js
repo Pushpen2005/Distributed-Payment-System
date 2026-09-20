@@ -1,5 +1,5 @@
 import PaymentService from "../services/payment.service.js";
-
+import PaymentReconciliationService from "../services/payment-reconciliation.service.js";
 
 const PaymentController = {
     async transferPayment(req, res, next) {
@@ -32,7 +32,25 @@ const PaymentController = {
         } catch (error) {
             next(error);
         }
-    }
+    },
+    async paymentReconciliation(req, res, next) {
+        try {
+            const { paymentId } = req.params;
+
+            const reconciliationResult =
+                await PaymentReconciliationService.reconcilePayment(
+                    paymentId
+                );
+
+            res.status(200).json({
+                success: true,
+                message: "Payment reconciliation successful",
+                data: reconciliationResult,
+            });
+        } catch (error) {
+            next(error);
+        }
+    },  
 };
 
 export default PaymentController;   

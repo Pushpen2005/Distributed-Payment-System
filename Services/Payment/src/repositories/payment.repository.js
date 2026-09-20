@@ -1,6 +1,5 @@
-
-class PaymentRepository{
-    async createPayment(tx,data) {
+class PaymentRepository {
+    async createPayment(tx, data) {
         return tx.payment.create({
             data,
         });
@@ -11,21 +10,25 @@ class PaymentRepository{
             where: {
                 id,
             },
+            include: {
+                idempotency: true,
+            },
         });
     }
 
-    async updateStatus(tx, id, status,failureCode) {
-        if(failureCode){
+    async updateStatus(tx, id, status, failureCode) {
+        if (failureCode) {
             return tx.payment.update({
                 where: {
                     id,
                 },
                 data: {
                     status,
-                    failureCode
+                    failureCode,
                 },
             });
         }
+
         return tx.payment.update({
             where: {
                 id,
