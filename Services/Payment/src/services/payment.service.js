@@ -21,7 +21,12 @@ const PaymentService = {
             "INVALID_AMOUNT"
         );
     }
-
+if (senderWalletId === receiverWalletId) {
+    throw new BadRequestError(
+        "Sender and receiver wallets must be different.",
+        "SELF_TRANSFER_NOT_ALLOWED"
+    );
+}
     //Verify wallet ownership first
     const verifyOwnershipResult =
         await walletClient.verifyOwnership({
