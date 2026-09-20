@@ -11,5 +11,9 @@ paymentRouter.post(
     validate(transferPaymentSchema, paymentHeadersSchema),
     PaymentController.transferPayment
 );
+paymentRouter.post(
+    "/reconcile/:paymentId",paymentMiddleware,
+    PaymentController.paymentReconciliation
+);
 
 export default paymentRouter;
