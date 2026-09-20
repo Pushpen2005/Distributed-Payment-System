@@ -4,6 +4,7 @@ class LedgerRepository {
             data,
         });
     }
+
     async createEntries(tx, entries) {
         return tx.ledger.createMany({
             data: entries,
@@ -18,6 +19,7 @@ class LedgerRepository {
             },
         });
     }
+ 
     async findByWalletId(tx, walletId) {
         return tx.ledger.findMany({
             where: { walletId },

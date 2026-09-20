@@ -1,5 +1,8 @@
+import { Prisma } from "@prisma/client";
+
 import WalletRepository from "../repositories/wallet.repository.js";
 import LedgerRepository from "../repositories/ledger.repository.js";
+
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 import ForbiddenError from "../../../../shared/errors/ForbiddenError.js";
@@ -8,11 +11,14 @@ import BadRequestError from "../../../../shared/errors/BadRequestError.js";
 import { prisma } from "../config/db.js";
 
 const WalletService = {
+
     async createWallet(userId) {
-        const existingWallet = await WalletRepository.findByUserId(
-            prisma,
-            userId
-        );
+
+        const existingWallet =
+            await WalletRepository.findByUserId(
+                prisma,
+                userId
+            );
 
         if (existingWallet) {
             throw new ConflictError(
@@ -27,14 +33,19 @@ const WalletService = {
             status: "ACTIVE",
         };
 
-        return WalletRepository.createWallet(prisma, walletData);
+        return WalletRepository.createWallet(
+            prisma,
+            walletData
+        );
     },
 
     async getWallet(userId) {
-        const wallet = await WalletRepository.findByUserId(
-            prisma,
-            userId
-        );
+
+        const wallet =
+            await WalletRepository.findByUserId(
+                prisma,
+                userId
+            );
 
         if (!wallet) {
             throw new NotFoundError(
@@ -46,6 +57,7 @@ const WalletService = {
     },
 
     async deposit(userId, amount) {
+
         if (amount <= 0) {
             throw new BadRequestError(
                 "Deposit amount must be greater than zero."
@@ -53,6 +65,7 @@ const WalletService = {
         }
 
         return prisma.$transaction(async (tx) => {
+
             const wallet =
                 await WalletRepository.findByUserIdForUpdate(
                     tx,
@@ -71,7 +84,8 @@ const WalletService = {
                 );
             }
 
-            const newBalance = wallet.balance.plus(amount);
+            const newBalance =
+                wallet.balance.plus(amount);
 
             return WalletRepository.updateBalance(
                 tx,
@@ -82,6 +96,7 @@ const WalletService = {
     },
 
     async withdraw(userId, amount) {
+
         if (amount <= 0) {
             throw new BadRequestError(
                 "Withdrawal amount must be greater than zero."
@@ -89,6 +104,7 @@ const WalletService = {
         }
 
         return prisma.$transaction(async (tx) => {
+
             const wallet =
                 await WalletRepository.findByUserIdForUpdate(
                     tx,
@@ -108,10 +124,13 @@ const WalletService = {
             }
 
             if (wallet.balance.lessThan(amount)) {
-                throw new BadRequestError("Insufficient funds.");
+                throw new BadRequestError(
+                    "Insufficient funds."
+                );
             }
 
-            const newBalance = wallet.balance.minus(amount);
+            const newBalance =
+                wallet.balance.minus(amount);
 
             return WalletRepository.updateBalance(
                 tx,
@@ -128,14 +147,13 @@ const WalletService = {
         receiverWalletId,
         amount
     ) {
-        // 1. Validate amount
         if (amount <= 0) {
             throw new BadRequestError(
-                "Transfer amount must be greater than zero."
+                "Transfer amount must be greater than zero.",
+                "INVALID_AMOUNT"
             );
         }
 
-        // 2. Reject self transfer
         if (senderWalletId === receiverWalletId) {
             throw new BadRequestError(
                 "Self transfer is not allowed.",
@@ -143,17 +161,12 @@ const WalletService = {
             );
         }
 
-        // 3. Start atomic transaction
         return prisma.$transaction(async (tx) => {
+            const wallets = await WalletRepository.findByIdsForUpdate(
+                tx,
+                [senderWalletId, receiverWalletId]
+            );
 
-            // 4. Lock both wallets
-            const wallets =
-                await WalletRepository.findByIdsForUpdate(
-                    tx,
-                    [senderWalletId, receiverWalletId]
-                );
-
-            // 5. Both wallets must exist
             if (wallets.length !== 2) {
                 throw new NotFoundError(
                     "One or both wallets not found.",
@@ -161,8 +174,6 @@ const WalletService = {
                 );
             }
 
-            // ORDER BY id means we cannot assume
-            // wallets[0] is the sender
             const senderWallet = wallets.find(
                 (wallet) => wallet.id === senderWalletId
             );
@@ -171,7 +182,6 @@ const WalletService = {
                 (wallet) => wallet.id === receiverWalletId
             );
 
-            // Defensive check
             if (!senderWallet || !receiverWallet) {
                 throw new NotFoundError(
                     "One or both wallets not found.",
@@ -179,7 +189,81 @@ const WalletService = {
                 );
             }
 
-            // 6. Validate sender wallet
+            const existingEntries = await LedgerRepository.findByPaymentId(
+                tx,
+                paymentId
+            );
+
+            if (existingEntries.length > 0) {
+                if (existingEntries.length !== 2) {
+                    throw new ConflictError(
+                        "Invalid ledger state for this payment.",
+                        "INVALID_LEDGER_STATE"
+                    );
+                }
+
+                const hasDuplicateLedgerType =
+                    new Set(existingEntries.map((entry) => entry.type)).size !== 2;
+
+                if (hasDuplicateLedgerType) {
+                    throw new ConflictError(
+                        "Duplicate ledger entries for this payment.",
+                        "INVALID_LEDGER_STATE"
+                    );
+                }
+
+                const debitEntry = existingEntries.find(
+                    (entry) => entry.type === "DEBIT"
+                );
+                const creditEntry = existingEntries.find(
+                    (entry) => entry.type === "CREDIT"
+                );
+
+                if (!debitEntry || !creditEntry) {
+                    throw new ConflictError(
+                        "Incomplete ledger entries for this payment.",
+                        "INCOMPLETE_LEDGER_ENTRIES"
+                    );
+                }
+
+                if (!debitEntry.amount.equals(creditEntry.amount)) {
+                    throw new ConflictError(
+                        "Debit and credit amounts do not match.",
+                        "INVALID_LEDGER_STATE"
+                    );
+                }
+
+                if (!debitEntry.amount.equals(amount)) {
+                    throw new ConflictError(
+                        "Duplicate paymentId was used with a different amount.",
+                        "INVALID_TRANSFER_PARAMETERS"
+                    );
+                }
+
+                if (debitEntry.walletId !== senderWalletId) {
+                    throw new ConflictError(
+                        "Duplicate paymentId was used with a different sender wallet.",
+                        "INVALID_TRANSFER_PARAMETERS"
+                    );
+                }
+
+                if (creditEntry.walletId !== receiverWalletId) {
+                    throw new ConflictError(
+                        "Duplicate paymentId was used with a different receiver wallet.",
+                        "INVALID_TRANSFER_PARAMETERS"
+                    );
+                }
+
+                return {
+                    paymentId,
+                    senderWalletId: debitEntry.walletId,
+                    receiverWalletId: creditEntry.walletId,
+                    amount: debitEntry.amount,
+                    status: "SUCCESS",
+                    alreadyProcessed: true,
+                };
+            }
+
             if (senderWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
                     "Sender wallet is not active.",
@@ -187,7 +271,6 @@ const WalletService = {
                 );
             }
 
-            // 7. Validate receiver wallet
             if (receiverWallet.status !== "ACTIVE") {
                 throw new ForbiddenError(
                     "Receiver wallet is not active.",
@@ -195,7 +278,6 @@ const WalletService = {
                 );
             }
 
-            // 8. Check sender balance
             if (senderWallet.balance.lessThan(amount)) {
                 throw new BadRequestError(
                     "Insufficient funds.",
@@ -203,28 +285,21 @@ const WalletService = {
                 );
             }
 
-            // 9. Calculate new balances
-            const senderNewBalance =
-                senderWallet.balance.minus(amount);
+            const senderNewBalance = senderWallet.balance.minus(amount);
+            const receiverNewBalance = receiverWallet.balance.plus(amount);
 
-            const receiverNewBalance =
-                receiverWallet.balance.plus(amount);
-
-            // 10. Debit sender
             await WalletRepository.updateBalance(
                 tx,
                 senderWallet.id,
                 senderNewBalance
             );
 
-            // 11. Credit receiver
             await WalletRepository.updateBalance(
                 tx,
                 receiverWallet.id,
                 receiverNewBalance
             );
 
-            // 12. Create ledger entries
             await LedgerRepository.createEntries(tx, [
                 {
                     paymentId,
@@ -242,85 +317,118 @@ const WalletService = {
                 },
             ]);
 
-            // 13. Return successful transfer
             return {
                 paymentId,
                 senderWalletId: senderWallet.id,
                 receiverWalletId: receiverWallet.id,
                 amount,
                 status: "SUCCESS",
+                alreadyProcessed: false,
             };
         });
     },
 
-    async verifyOwnership(userId, senderWalletId) {
-        const wallet = await WalletRepository.findById(
-            prisma,
-            senderWalletId
-        );
+    async verifyOwnership(
+        userId,
+        senderWalletId
+    ) {
+
+        const wallet =
+            await WalletRepository.findById(
+                prisma,
+                senderWalletId
+            );
+
         if (!wallet) {
             throw new NotFoundError(
                 "Wallet not found.",
                 "WALLET_NOT_FOUND"
             );
         }
+
         if (wallet.userId !== userId) {
             throw new ForbiddenError(
                 "User does not own the wallet.",
                 "WALLET_OWNERSHIP_MISMATCH"
             );
         }
-        const result = {
+
+        return {
             ownsWallet: true,
-        }
-        return result;
+        };
     },
 
     async getTransferStatus(paymentId) {
-  const ledgerEntries = await LedgerRepository.findByPaymentId(
-    prisma,
-    paymentId
-  );
 
-  if (ledgerEntries.length === 0) {
-    return {
-      paymentId,
-      found: false,
-      status: null,
-    };
-  }
+        const ledgerEntries =
+            await LedgerRepository.findByPaymentId(
+                prisma,
+                paymentId
+            );
 
-  if (ledgerEntries.length !== 2) {
-    throw new InternalServerError(
-      "Invalid ledger state for this payment.",
-      "INVALID_LEDGER_STATE"
-    );
-  }
+        // No ledger means the transfer is not known
+        // by Wallet Service.
+        if (ledgerEntries.length === 0) {
+            return {
+                paymentId,
+                found: false,
+                status: null,
+            };
+        }
 
-  const debitEntry = ledgerEntries.find(
-    (entry) => entry.type === "DEBIT"
-  );
+        // A successful transfer must contain exactly
+        // two ledger entries.
+        if (ledgerEntries.length !== 2) {
+            throw new ConflictError(
+                "Invalid ledger state for this payment.",
+                "INVALID_LEDGER_STATE"
+            );
+        }
 
-  const creditEntry = ledgerEntries.find(
-    (entry) => entry.type === "CREDIT"
-  );
+        const debitEntry =
+            ledgerEntries.find(
+                (entry) =>
+                    entry.type === "DEBIT"
+            );
 
-  if (!debitEntry || !creditEntry) {
-    throw new InternalServerError(
-      "Incomplete ledger entries for this payment.",
-      "INCOMPLETE_LEDGER_ENTRIES"
-    );
-  }
+        const creditEntry =
+            ledgerEntries.find(
+                (entry) =>
+                    entry.type === "CREDIT"
+            );
 
-  return {
-    paymentId,
-    found: true,
-    senderWalletId: debitEntry.walletId,
-    receiverWalletId: creditEntry.walletId,
-    amount: debitEntry.amount,
-    status: "SUCCESS",
-  };
-}
+        if (!debitEntry || !creditEntry) {
+            throw new ConflictError(
+                "Incomplete ledger entries for this payment.",
+                "INCOMPLETE_LEDGER_ENTRIES"
+            );
+        }
+
+        // Debit and credit must represent
+        // the same amount.
+        if (
+            !debitEntry.amount.equals(
+                creditEntry.amount
+            )
+        ) {
+            throw new ConflictError(
+                "Debit and credit amounts do not match.",
+                "INVALID_LEDGER_STATE"
+            );
+        }
+
+        return {
+            paymentId,
+            found: true,
+            senderWalletId:
+                debitEntry.walletId,
+            receiverWalletId:
+                creditEntry.walletId,
+            amount:
+                debitEntry.amount,
+            status: "SUCCESS",
+        };
+    },
 };
 
 export default WalletService;
