@@ -10,7 +10,7 @@ class WalletRepository {
     async findByUserId(client, userId) {
         return client.wallet.findUnique({
             where: {
-                userId, 
+                userId,
             },
         });
     }
@@ -34,28 +34,28 @@ class WalletRepository {
         });
     }
     async findByUserIdForUpdate(tx, userId) {
-  const wallets = await tx.$queryRaw`
+        const wallets = await tx.$queryRaw`
     SELECT *
     FROM "wallets"
     WHERE "userId" = CAST(${userId} AS uuid)
     FOR UPDATE
   `;
 
-  return wallets[0] ?? null;
-}
+        return wallets[0] ?? null;
+    }
     async findByIdsForUpdate(tx, walletIds) {
-  return tx.$queryRaw`
+        return tx.$queryRaw`
     SELECT *
     FROM "wallets"
     WHERE "id" IN (
       ${Prisma.join(
-        walletIds.map((id) => Prisma.sql`CAST(${id} AS uuid)`)
-      )}
+            walletIds.map((id) => Prisma.sql`CAST(${id} AS uuid)`)
+        )}
     )
     ORDER BY "id"
     FOR UPDATE
   `;
-}
+    }
 }
 
 
