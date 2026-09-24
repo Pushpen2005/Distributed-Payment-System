@@ -1,4 +1,4 @@
-import {prisma} from '../config/db.js';
+import { prisma } from '../config/db.js';
 
 class UserRepository {
     async findByEmail(email) {
@@ -7,12 +7,12 @@ class UserRepository {
                 email: email
             }
         });
-    if (!user) {
-        return null; 
+        if (!user) {
+            return null;
+        }
+        return user;
     }
-    return user;
-    }
-    async createUser(userData){
+    async createUser(userData) {
         const user = await prisma.user.create({
             data: userData
         });
@@ -25,9 +25,9 @@ class UserRepository {
             }
         });
         if (!user) {
-            return null; 
+            return null;
         }
-        return user;    
+        return user;
     }
 }
 

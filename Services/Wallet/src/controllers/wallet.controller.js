@@ -104,10 +104,10 @@ const WalletController = {
                 success: true,
                 message: "Transfer status fetched successfully",
                 data: transferStatus,
-            }); 
+            });
         }
         catch (error) {
-            next(error);    
+            next(error);
         }
     }
 
