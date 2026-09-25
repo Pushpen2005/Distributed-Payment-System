@@ -6,7 +6,7 @@ class UserRepository {
             where: {
                 email: email
             }
-        });
+    });
         if (!user) {
             return null;
         }
