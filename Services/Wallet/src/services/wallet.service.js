@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import WalletRepository from "../repositories/wallet.repository.js";
 import LedgerRepository from "../repositories/ledger.repository.js";
-import WalletBalanceCache from "../cache/walletBalance.cache.js";
+import cachedWallet from "../cache/walletBalance.cache.js";
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 import ForbiddenError from "../../../../shared/errors/ForbiddenError.js";
@@ -40,46 +40,41 @@ const WalletService = {
     },
 
     async getWallet(userId) {
+    // 1. Check Redis first
+    const cachedBalance = await cachedWallet.get(userId);
 
-        // PostgreSQL is still required to identify the wallet
-        const wallet =
-            await WalletRepository.findByUserId(
-                prisma,
-                userId
-            );
+    if (cachedBalance !== null) {
+        console.log(`[WalletCache] HIT ${userId}`);
 
-        if (!wallet) {
-            throw new NotFoundError(
-                "Wallet not found for this user."
-            );
-        }
+        return {
+            userId,
+            balance: cachedBalance,
+        };
+    }
 
-        const cachedBalance =
-            await WalletBalanceCache.get(wallet.id);
+    // 2. Redis MISS → PostgreSQL
+    console.log(`[WalletCache] MISS ${userId}`);
 
-        if (cachedBalance !== null) {
+    const wallet = await WalletRepository.findByUserId(
+        prisma,
+        userId
+    );
 
-            console.log(
-                `[WalletCache] HIT ${wallet.id}`
-            );
-
-            return {
-                ...wallet,
-                balance: cachedBalance,
-            };
-        }
-
-        console.log(
-            `[WalletCache] MISS ${wallet.id}`
+    if (!wallet) {
+        throw new NotFoundError(
+            "Wallet not found for this user."
         );
+    }
 
-        await WalletBalanceCache.set(
-            wallet.id,
-            wallet.balance
-        );
+    // 3. Store balance in Redis
+    await cachedWallet.set(
+        userId,
+        wallet.balance
+    );
 
-        return wallet;
-    },
+    // 4. Return wallet
+    return wallet;
+},
 
     async deposit(userId, amount) {
 

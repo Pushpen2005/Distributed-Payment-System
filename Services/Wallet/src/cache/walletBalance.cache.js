@@ -1,35 +1,40 @@
 import redisClient from "../config/redis.js";
 
-const WALLET_BALANCE_TTL = 60;
+const WALLET_TTL = 60;
 
-const getWalletBalanceKey = (walletId) => {
-    return `wallet:balance:${walletId}`;
+const getWalletKey = (userId) => {
+    return `wallet:${userId}`;
 };
 
-const WalletBalanceCache = {
+const cachedWallet = {
+    async get(userId) {
+        const key = getWalletKey(userId);
 
-    async get(walletId) {
-        const key = getWalletBalanceKey(walletId);
+        const data = await redisClient.get(key);
 
-        return redisClient.get(key);
+        if (data === null) {
+            return null;
+        }
+
+        return JSON.parse(data);
     },
 
-    async set(walletId, balance) {
-        const key = getWalletBalanceKey(walletId);
+    async set(userId, wallet) {
+        const key = getWalletKey(userId);
 
         await redisClient.set(
             key,
-            balance.toString(),
+            JSON.stringify(wallet),
             "EX",
-            WALLET_BALANCE_TTL
+            WALLET_TTL
         );
     },
 
-    async delete(walletId) {
-        const key = getWalletBalanceKey(walletId);
+    async delete(userId) {
+        const key = getWalletKey(userId);
 
         await redisClient.del(key);
     },
 };
 
-export default WalletBalanceCache;
+export default cachedWallet;
