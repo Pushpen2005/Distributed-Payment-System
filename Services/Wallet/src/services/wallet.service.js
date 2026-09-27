@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import WalletRepository from "../repositories/wallet.repository.js";
 import LedgerRepository from "../repositories/ledger.repository.js";
-
+import WalletBalanceCache from "../cache/walletBalance.cache.js";
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 import ForbiddenError from "../../../../shared/errors/ForbiddenError.js";
@@ -41,6 +41,7 @@ const WalletService = {
 
     async getWallet(userId) {
 
+        // PostgreSQL is still required to identify the wallet
         const wallet =
             await WalletRepository.findByUserId(
                 prisma,
@@ -52,6 +53,30 @@ const WalletService = {
                 "Wallet not found for this user."
             );
         }
+
+        const cachedBalance =
+            await WalletBalanceCache.get(wallet.id);
+
+        if (cachedBalance !== null) {
+
+            console.log(
+                `[WalletCache] HIT ${wallet.id}`
+            );
+
+            return {
+                ...wallet,
+                balance: cachedBalance,
+            };
+        }
+
+        console.log(
+            `[WalletCache] MISS ${wallet.id}`
+        );
+
+        await WalletBalanceCache.set(
+            wallet.id,
+            wallet.balance
+        );
 
         return wallet;
     },
