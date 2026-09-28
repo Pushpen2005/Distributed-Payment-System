@@ -107,12 +107,14 @@ const WalletService = {
             const newBalance =
                 wallet.balance.plus(amount);
 
+
             return WalletRepository.updateBalance(
                 tx,
                 wallet.id,
                 newBalance
             );
         });
+        cachedWallet.delete(userId); // Invalidate cache after deposit
     },
 
     async withdraw(userId, amount) {
@@ -152,12 +154,14 @@ const WalletService = {
             const newBalance =
                 wallet.balance.minus(amount);
 
+
             return WalletRepository.updateBalance(
                 tx,
                 wallet.id,
                 newBalance
             );
         });
+        cachedWallet.delete(userId); // Invalidate cache after deposit
     },
 
     // Used by Payment Service to move money safely
@@ -181,7 +185,7 @@ const WalletService = {
             );
         }
 
-        return prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const wallets = await WalletRepository.findByIdsForUpdate(
                 tx,
                 [senderWalletId, receiverWalletId]
@@ -338,14 +342,25 @@ const WalletService = {
             ]);
 
             return {
-                paymentId,
-                senderWalletId: senderWallet.id,
-                receiverWalletId: receiverWallet.id,
-                amount,
-                status: "SUCCESS",
-                alreadyProcessed: false,
-            };
+    response: {
+        paymentId,
+        senderWalletId: senderWallet.id,
+        receiverWalletId: receiverWallet.id,
+        amount,
+        status: "SUCCESS",
+        alreadyProcessed: false,
+    },
+
+    senderUserId: senderWallet.userId,
+    receiverUserId: receiverWallet.userId,
+};
         });
+        await Promise.all([
+    cachedWallet.delete(result.senderUserId),
+    cachedWallet.delete(result.receiverUserId),
+]);
+
+return result.response;
     },
 
     async verifyOwnership(
