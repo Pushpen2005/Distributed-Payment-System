@@ -17,7 +17,6 @@ redisClient.on("error", (error) => {
 redisClient.on("reconnecting", () => {
     console.log("Redis reconnecting...");
 });
-
 redisClient.on("close", () => {
     console.log("Redis connection closed");
 });
