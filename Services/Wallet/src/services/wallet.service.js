@@ -40,41 +40,41 @@ const WalletService = {
     },
 
     async getWallet(userId) {
-    // 1. Check Redis first
-    const cachedBalance = await cachedWallet.get(userId);
+        // 1. Check Redis first
+        const cachedBalance = await cachedWallet.get(userId);
 
-    if (cachedBalance !== null) {
-        console.log(`[WalletCache] HIT ${userId}`);
+        if (cachedBalance !== null) {
+            console.log(`[WalletCache] HIT ${userId}`);
 
-        return {
-            userId,
-            balance: cachedBalance,
-        };
-    }
+            return {
+                userId,
+                balance: cachedBalance,
+            };
+        }
 
-    // 2. Redis MISS → PostgreSQL
-    console.log(`[WalletCache] MISS ${userId}`);
+        // 2. Redis MISS → PostgreSQL
+        console.log(`[WalletCache] MISS ${userId}`);
 
-    const wallet = await WalletRepository.findByUserId(
-        prisma,
-        userId
-    );
-
-    if (!wallet) {
-        throw new NotFoundError(
-            "Wallet not found for this user."
+        const wallet = await WalletRepository.findByUserId(
+            prisma,
+            userId
         );
-    }
 
-    // 3. Store balance in Redis
-    await cachedWallet.set(
-        userId,
-        wallet.balance
-    );
+        if (!wallet) {
+            throw new NotFoundError(
+                "Wallet not found for this user."
+            );
+        }
 
-    // 4. Return wallet
-    return wallet;
-},
+        // 3. Store balance in Redis
+        await cachedWallet.set(
+            userId,
+            wallet.balance
+        );
+
+        // 4. Return wallet
+        return wallet;
+    },
 
     async deposit(userId, amount) {
 
@@ -342,27 +342,26 @@ const WalletService = {
             ]);
 
             return {
-    response: {
-        paymentId,
-        senderWalletId: senderWallet.id,
-        receiverWalletId: receiverWallet.id,
-        amount,
-        status: "SUCCESS",
-        alreadyProcessed: false,
-    },
+                response: {
+                    paymentId,
+                    senderWalletId: senderWallet.id,
+                    receiverWalletId: receiverWallet.id,
+                    amount,
+                    status: "SUCCESS",
+                    alreadyProcessed: false,
+                },
 
-    senderUserId: senderWallet.userId,
-    receiverUserId: receiverWallet.userId,
-};
+                senderUserId: senderWallet.userId,
+                receiverUserId: receiverWallet.userId,
+            };
         });
         await Promise.all([
-    cachedWallet.delete(result.senderUserId),
-    cachedWallet.delete(result.receiverUserId),
-]);
+            cachedWallet.delete(result.senderUserId),
+            cachedWallet.delete(result.receiverUserId),
+        ]);
 
-return result.response;
+        return result.response;
     },
-
     async verifyOwnership(
         userId,
         senderWalletId

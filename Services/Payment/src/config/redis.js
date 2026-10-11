@@ -21,9 +21,9 @@ redisClient.on("reconnecting", () => {
 redisClient.on("close", () => {
     console.log("Redis connection closed");
 });
+
 const shutdown = async (signal) => {
     console.log(`${signal} received. Shutting down...`);
-
     try {
         await redisClient.quit();
 
