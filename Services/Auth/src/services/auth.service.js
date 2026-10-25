@@ -7,6 +7,7 @@ import sessionRepository from "../repositories/session.repository.js";
 import ConflictError from "../../../../shared/errors/ConflictError.js";
 import UnauthorizedError from "../../../../shared/errors/UnauthorizedError.js";
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
+import cachedOTP from "../cache/otp.cache.js";
 
 import {
   generateAccessToken,
@@ -199,6 +200,31 @@ const AuthService = {
       throw err;
     }
   },
+  async verifyOTP(userId, otp) {
+    const cachedOtp = await cachedOTP.get(userId);
+
+    if (!cachedOtp) {
+      throw new UnauthorizedError("OTP has expired or is invalid.");
+    }
+
+    if (cachedOtp !== otp) {
+      throw new UnauthorizedError("Invalid OTP.");
+    }
+
+    // If OTP is valid, delete it from cache
+    await cachedOTP.delete(userId);
+    return true;
+  },  
+  async sendOTP(userId) {
+  const otp = crypto
+    .randomInt(0, 1_000_000)
+    .toString()
+    .padStart(6, "0");
+
+  await cachedOTP.create(userId, otp);
+
+  return otp;
+}
 };
 
 export default AuthService;
