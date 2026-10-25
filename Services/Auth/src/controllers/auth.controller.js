@@ -94,17 +94,35 @@ const AuthController = {
         }
     },
     async verifyOTP(req, res, next) {
-        const { userId, otp } = req.body;
-        try {
-            const isValid = await AuthService.verifyOTP(userId, otp);
-            res.status(200).json({
-                message: "OTP verified successfully",
-                isValid: isValid
-            });
-        } catch (err) {
-            next(err);
-        }   
-    },
+  const { challengeId, otp } = req.body;
+
+  try {
+    const result = await AuthService.verifyOTP(
+      challengeId,
+      otp
+    );
+
+    res.cookie("accessToken", result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+    });
+  } catch (err) {
+    next(err);
+  }
+},
     async sendOTP(req, res, next) {
         const { userId } = req.body;
         try {

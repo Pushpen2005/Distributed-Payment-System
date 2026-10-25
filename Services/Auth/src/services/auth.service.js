@@ -47,54 +47,39 @@ const AuthService = {
   },
 
   async login(email, password) {
-    const user = await userRepository.findByEmail(email);
+  const user = await userRepository.findByEmail(email);
 
-    if (!user) {
-      throw new UnauthorizedError("Invalid email or password");
-    }
+  if (!user) {
+    throw new UnauthorizedError("Invalid email or password");
+  }
 
-    const isPasswordValid = await bcrypt.compare(
+  const isPasswordValid = await bcrypt.compare(
     password,
     user.passwordHash
-);
+  );
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedError("Invalid email or password");
-    }
+  if (!isPasswordValid) {
+    throw new UnauthorizedError("Invalid email or password");
+  }
 
-    // Generate session ID before generating the refresh token
-    const sessionId = crypto.randomUUID();
+  // Temporary login challenge
+  const challengeId = crypto.randomUUID();
 
-    // Generate refresh token using the session ID
-    const refreshToken = generateRefreshToken({
-      sub: user.id,
-      sid: sessionId,
-    });
+  const otp = crypto
+    .randomInt(0, 1_000_000)
+    .toString()
+    .padStart(6, "0");
 
-    // Hash refresh token before storing it
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+  await cachedOTP.create(challengeId, {
+    userId: user.id,
+    otp,
+  });
 
-    // Get expiration from JWT
-    const decoded = verifyRefreshToken(refreshToken);
-
-    // Create complete session in one operation
-    await sessionRepository.createSession({
-      id: sessionId,
-      userId: user.id,
-      refreshTokenHash,
-      expiresAt: new Date(decoded.exp * 1000),
-    });
-
-    const accessToken = generateAccessToken({
-      sub: user.id,
-      role: user.role,
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-    };
-  },
+  return {
+    challengeId,
+    otp, // temporary for local testing only
+  };
+},
 
   async getUserById(id) {
     const user = await userRepository.findById(id);
@@ -176,6 +161,36 @@ const AuthService = {
       throw new UnauthorizedError("Invalid or expired refresh token.");
     }
   },
+
+async createAuthenticatedSession(user) {
+  const sessionId = crypto.randomUUID();
+
+  const refreshToken = generateRefreshToken({
+    sub: user.id,
+    sid: sessionId,
+  });
+
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+  const decoded = verifyRefreshToken(refreshToken);
+
+  await sessionRepository.createSession({
+    id: sessionId,
+    userId: user.id,
+    refreshTokenHash,
+    expiresAt: new Date(decoded.exp * 1000),
+  });
+
+  const accessToken = generateAccessToken({
+    sub: user.id,
+    role: user.role,
+  });
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+},
+
   async logout(refreshToken) {
     try {
       if (!refreshToken) {
@@ -200,21 +215,28 @@ const AuthService = {
       throw err;
     }
   },
-  async verifyOTP(userId, otp) {
-    const cachedOtp = await cachedOTP.get(userId);
+  async verifyOTP(challengeId, otp) {
+  const challenge = await cachedOTP.get(challengeId);
 
-    if (!cachedOtp) {
-      throw new UnauthorizedError("OTP has expired or is invalid.");
-    }
+  if (!challenge) {
+    throw new UnauthorizedError("OTP has expired or is invalid.");
+  }
 
-    if (cachedOtp !== otp) {
-      throw new UnauthorizedError("Invalid OTP.");
-    }
+  if (challenge.otp !== otp) {
+    throw new UnauthorizedError("Invalid OTP.");
+  }
 
-    // If OTP is valid, delete it from cache
-    await cachedOTP.delete(userId);
-    return true;
-  },  
+  // OTP is single-use
+  await cachedOTP.delete(challengeId);
+
+  const user = await userRepository.findById(challenge.userId);
+
+  if (!user) {
+    throw new UnauthorizedError("User not found.");
+  }
+
+  return AuthService.createAuthenticatedSession(user);
+},  
   async sendOTP(userId) {
   const otp = crypto
     .randomInt(0, 1_000_000)
