@@ -1,40 +1,37 @@
+
 import redisClient from "../config/redis.js";
 
-const OTP_TTL = 300; // 5 minutes in seconds
+const OTP_TTL = 300;
 
-const getOTPkey = (userId) => {
-    return `otp:${userId}`;
-};
+const getOTPKey = (challengeId) => `otp:${challengeId}`;
 
 const cachedOTP = {
-    async create(userId, otp) {
-        const key = getOTPkey(userId);
+  async create(challengeId, challenge) {
+    const key = getOTPKey(challengeId);
 
-        await redisClient.set(
-            key,
-            JSON.stringify(otp),
-            "EX",
-            OTP_TTL
-        );
-    },
+    await redisClient.set(
+      key,
+      JSON.stringify(challenge),
+      "EX",
+      OTP_TTL
+    );
+  },
 
-    async get(userId) {
-        const key = getOTPkey(userId);
+  async get(challengeId) {
+    const key = getOTPKey(challengeId);
+    const data = await redisClient.get(key);
 
-        const data = await redisClient.get(key);
+    if (data === null) {
+      return null;
+    }
 
-        if (data === null) {
-            return null;
-        }
+    return JSON.parse(data);
+  },
 
-        return JSON.parse(data);
-    },
-
-    async delete(userId) {
-        const key = getOTPkey(userId);
-
-        await redisClient.del(key);
-    },
+  async delete(challengeId) {
+    const key = getOTPKey(challengeId);
+    await redisClient.del(key);
+  },
 };
 
-export default cachedOTP;   
+export default cachedOTP;
