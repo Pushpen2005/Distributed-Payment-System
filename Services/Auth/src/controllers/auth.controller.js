@@ -103,7 +103,31 @@ const AuthController = {
         catch (err) {
             next(err);
         }
-    }
+    },
+    async verifyOTP(req, res, next) {
+        const { userId, otp } = req.body;
+        try {
+            const isValid = await AuthService.verifyOTP(userId, otp);
+            res.status(200).json({
+                message: "OTP verified successfully",
+                isValid: isValid
+            });
+        } catch (err) {
+            next(err);
+        }   
+    },
+    async sendOTP(req, res, next) {
+        const { userId } = req.body;
+        try {
+            const otp = await AuthService.sendOTP(userId);
+            res.status(200).json({
+                message: "OTP sent successfully",
+                otp: otp // In a real application, you wouldn't send the OTP back in the response.
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
 };
 
 export default AuthController;

@@ -9,6 +9,10 @@ AuthRouter.post("/register", validate(registerSchema), AuthController.register);
 
 AuthRouter.post("/login",validate(loginSchema), AuthController.login);
 
+AuthRouter.post("/send-otp", AuthController.sendOTP);
+
+AuthRouter.post("/verify-otp", AuthController.verifyOTP);
+
 AuthRouter.get("/me",authMiddleware, AuthController.getUser);
 
 AuthRouter.post("/refresh", AuthController.refresh);
