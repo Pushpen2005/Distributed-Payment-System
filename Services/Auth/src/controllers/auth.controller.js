@@ -14,31 +14,20 @@ const AuthController = {
         }
     },  
     async login(req, res, next) {
-        const { email, password } = req.body;
-        try {
-            const result = await AuthService.login(email, password);
-            res.cookie("accessToken", result.accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 15 * 60 * 1000,
-            });
-            res.cookie("refreshToken", result.refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-            });
+  const { email, password } = req.body;
 
-            res.status(200).json({
-                message: "Login successful",
-            });
+  try {
+    const result = await AuthService.login(email, password);
 
-        }
-        catch (err) {
-            next(err);
-        }
-    },
+    res.status(200).json({
+      message: "OTP verification required",
+      challengeId: result.challengeId,
+      otp: result.otp, // REMOVE before production
+    });
+  } catch (err) {
+    next(err);
+  }
+},
     async getUser(req, res, next) {
         const userId = req.user.sub;
         try {
