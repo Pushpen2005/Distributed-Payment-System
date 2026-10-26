@@ -74,7 +74,6 @@ const AuthService = {
     userId: user.id,
     otp,
   });
-
   return {
     challengeId,
     otp, // temporary for local testing only
