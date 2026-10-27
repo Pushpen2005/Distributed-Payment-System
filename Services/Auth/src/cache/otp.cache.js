@@ -29,14 +29,22 @@ const cachedOTP = {
   },
 
   async delete(challengeId) {
-    const key = getOTPKey(challengeId);
-    await redisClient.del(key);
-  },
+  const challengeKey = getOTPKey(challengeId);
+  const attemptsKey = `otp:attempts:${challengeId}`;
+
+  await redisClient.del(challengeKey, attemptsKey);
+},
   async incrementAttempts(challengeId) {
   const key = `otp:attempts:${challengeId}`;
 
-  return redisClient.incr(key);
-  },
+  const attempts = await redisClient.incr(key);
+
+  if (attempts === 1) {
+    await redisClient.expire(key, OTP_TTL);
+  }
+
+  return attempts;
+},
 };
 
 export default cachedOTP;
