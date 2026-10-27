@@ -15,6 +15,8 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 
+const MAX_OTP_ATTEMPTS = 5;
+
 const AuthService = {
   async register(userData) {
     const existingUser = await userRepository.findByEmail(userData.email);
@@ -47,38 +49,38 @@ const AuthService = {
   },
 
   async login(email, password) {
-  const user = await userRepository.findByEmail(email);
+    const user = await userRepository.findByEmail(email);
 
-  if (!user) {
-    throw new UnauthorizedError("Invalid email or password");
-  }
+    if (!user) {
+      throw new UnauthorizedError("Invalid email or password");
+    }
 
-  const isPasswordValid = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
 
-  if (!isPasswordValid) {
-    throw new UnauthorizedError("Invalid email or password");
-  }
+    if (!isPasswordValid) {
+      throw new UnauthorizedError("Invalid email or password");
+    }
 
-  // Temporary login challenge
-  const challengeId = crypto.randomUUID();
+    // Temporary login challenge
+    const challengeId = crypto.randomUUID();
 
-  const otp = crypto
-    .randomInt(0, 1_000_000)
-    .toString()
-    .padStart(6, "0");
+    const otp = crypto
+      .randomInt(0, 1_000_000)
+      .toString()
+      .padStart(6, "0");
 
-  await cachedOTP.create(challengeId, {
-    userId: user.id,
-    otp,
-  });
-  return {
-    challengeId,
-    otp, // temporary for local testing only
-  };
-},
+    await cachedOTP.create(challengeId, {
+      userId: user.id,
+      otp,
+    });
+    return {
+      challengeId,
+      otp, // temporary for local testing only
+    };
+  },
 
   async getUserById(id) {
     const user = await userRepository.findById(id);
@@ -161,34 +163,34 @@ const AuthService = {
     }
   },
 
-async createAuthenticatedSession(user) {
-  const sessionId = crypto.randomUUID();
+  async createAuthenticatedSession(user) {
+    const sessionId = crypto.randomUUID();
 
-  const refreshToken = generateRefreshToken({
-    sub: user.id,
-    sid: sessionId,
-  });
+    const refreshToken = generateRefreshToken({
+      sub: user.id,
+      sid: sessionId,
+    });
 
-  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-  const decoded = verifyRefreshToken(refreshToken);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    const decoded = verifyRefreshToken(refreshToken);
 
-  await sessionRepository.createSession({
-    id: sessionId,
-    userId: user.id,
-    refreshTokenHash,
-    expiresAt: new Date(decoded.exp * 1000),
-  });
+    await sessionRepository.createSession({
+      id: sessionId,
+      userId: user.id,
+      refreshTokenHash,
+      expiresAt: new Date(decoded.exp * 1000),
+    });
 
-  const accessToken = generateAccessToken({
-    sub: user.id,
-    role: user.role,
-  });
+    const accessToken = generateAccessToken({
+      sub: user.id,
+      role: user.role,
+    });
 
-  return {
-    accessToken,
-    refreshToken,
-  };
-},
+    return {
+      accessToken,
+      refreshToken,
+    };
+  },
 
   async logout(refreshToken) {
     try {
@@ -215,38 +217,54 @@ async createAuthenticatedSession(user) {
     }
   },
   async verifyOTP(challengeId, otp) {
-  const challenge = await cachedOTP.get(challengeId);
-
-  if (!challenge) {
-    throw new UnauthorizedError("OTP has expired or is invalid.");
-  }
-
-  if (challenge.otp !== otp) {
-    throw new UnauthorizedError("Invalid OTP.");
-    await cachedOTP.incrementAttempts(challengeId);
-  }
-
-  // OTP is single-use
-  await cachedOTP.delete(challengeId);
-
-  const user = await userRepository.findById(challenge.userId);
-
-  if (!user) {
-    throw new UnauthorizedError("User not found.");
-  }
-
-  return AuthService.createAuthenticatedSession(user);
-},  
-  async sendOTP(userId) {
-  const otp = crypto
-    .randomInt(0, 1_000_000)
-    .toString()
-    .padStart(6, "0");
-
-  await cachedOTP.create(userId, otp);
-
-  return otp;
+    if (
+  typeof challengeId !== "string" ||
+  !challengeId ||
+  typeof otp !== "string" ||
+  !/^\d{6}$/.test(otp)
+) {
+  throw new UnauthorizedError(
+    "OTP has expired or is invalid."
+  );
 }
+    const challenge = await cachedOTP.get(challengeId);
+
+    if (!challenge) {
+      throw new UnauthorizedError("OTP has expired or is invalid.");
+    }
+
+    if (challenge.otp !== otp) {
+      const attempts = await cachedOTP.incrementAttempts(challengeId);
+      if (attempts >= MAX_OTP_ATTEMPTS) {
+        await cachedOTP.delete(challengeId);
+        throw new UnauthorizedError(
+          "Maximum OTP attempts exceeded."
+        );
+      }
+      throw new UnauthorizedError("Invalid OTP.");
+    }
+
+    // OTP is single-use
+    await cachedOTP.delete(challengeId);
+
+    const user = await userRepository.findById(challenge.userId);
+
+    if (!user) {
+      throw new UnauthorizedError("User not found.");
+    }
+
+    return AuthService.createAuthenticatedSession(user);
+  },
+  async sendOTP(userId) {
+    const otp = crypto
+      .randomInt(0, 1_000_000)
+      .toString()
+      .padStart(6, "0");
+
+    await cachedOTP.create(userId, otp);
+
+    return otp;
+  }
 };
 
 export default AuthService;
