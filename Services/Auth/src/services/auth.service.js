@@ -223,6 +223,7 @@ async createAuthenticatedSession(user) {
 
   if (challenge.otp !== otp) {
     throw new UnauthorizedError("Invalid OTP.");
+    await cachedOTP.incrementAttempts(challengeId);
   }
 
   // OTP is single-use
