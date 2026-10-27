@@ -32,6 +32,11 @@ const cachedOTP = {
     const key = getOTPKey(challengeId);
     await redisClient.del(key);
   },
+  async incrementAttempts(challengeId) {
+  const key = `otp:attempts:${challengeId}`;
+
+  return redisClient.incr(key);
+  },
 };
 
 export default cachedOTP;
