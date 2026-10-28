@@ -7,6 +7,17 @@ import walletClient from "../clients/wallet.client.js";
 
 import NotFoundError from "../../../../shared/errors/NotFoundError.js";
 
+const PAYMENT_FAILURE_CODES = new Set([
+    "INSUFFICIENT_BALANCE",
+    "WALLET_NOT_FOUND",
+    "WALLET_FROZEN",
+    "SELF_TRANSFER_NOT_ALLOWED",
+    "INTERNAL_ERROR",
+]);
+
+const getFailureCode = (code) =>
+    PAYMENT_FAILURE_CODES.has(code) ? code : "INTERNAL_ERROR";
+
 const PaymentReconciliationService = {
     async reconcilePayment(paymentId) {
         const payment = await paymentRepository.findById(
@@ -100,8 +111,7 @@ const PaymentReconciliationService = {
 
         // Wallet confirms FAILED
         if (walletStatus.status === "FAILED") {
-            const failureCode =
-                walletStatus.failureCode || "INTERNAL_ERROR";
+            const failureCode = getFailureCode(walletStatus.failureCode);
 
             const response = {
                 status: "FAILED",
