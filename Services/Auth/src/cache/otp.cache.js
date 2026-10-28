@@ -1,4 +1,3 @@
-
 import redisClient from "../config/redis.js";
 
 const OTP_TTL = 300;
