@@ -1,4 +1,4 @@
-import redisClient from "../../config/redis.js";
+import redisClient from "../config/redis.js";
 
 export const RATE_LIMIT = 5;
 export const WINDOW_SECONDS = 60;
