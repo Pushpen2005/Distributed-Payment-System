@@ -83,12 +83,15 @@ const WalletController = {
     async verifyOwnership(req, res, next) {
         try {
             const { senderUserId, senderWalletId } = req.body;
-            const ownsWallet = await WalletService.verifyOwnership(senderUserId, senderWalletId);
+            const { ownsWallet } = await WalletService.verifyOwnership(
+                senderUserId,
+                senderWalletId
+            );
             return res.status(200).json({
                 success: true,
                 message: "Ownership verified successfully",
                 data: {
-                    ownsWallet: true
+                    ownsWallet
                 },
             });
         }
