@@ -279,12 +279,16 @@ const WalletService = {
                 }
 
                 return {
-                    paymentId,
-                    senderWalletId: debitEntry.walletId,
-                    receiverWalletId: creditEntry.walletId,
-                    amount: debitEntry.amount,
-                    status: "SUCCESS",
-                    alreadyProcessed: true,
+                    response: {
+                        paymentId,
+                        senderWalletId: debitEntry.walletId,
+                        receiverWalletId: creditEntry.walletId,
+                        amount: debitEntry.amount,
+                        status: "SUCCESS",
+                        alreadyProcessed: true,
+                    },
+                    senderUserId: senderWallet.userId,
+                    receiverUserId: receiverWallet.userId,
                 };
             }
 
