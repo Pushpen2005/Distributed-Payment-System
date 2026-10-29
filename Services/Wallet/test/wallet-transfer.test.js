@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
-
 import BadRequestError from "../../../shared/errors/BadRequestError.js";
 import ForbiddenError from "../../../shared/errors/ForbiddenError.js";
 import NotFoundError from "../../../shared/errors/NotFoundError.js";
