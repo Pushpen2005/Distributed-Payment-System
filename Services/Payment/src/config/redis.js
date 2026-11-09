@@ -5,7 +5,6 @@ const redisClient = new Redis(process.env.REDIS_URL);
 redisClient.on("connect", () => {
     console.log("Redis connecting...");
 });
-
 redisClient.on("ready", () => {
     console.log("Redis connected and ready");
 });
