@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const WALLET_SERVICE_URL =
-    process.env.WALLET_SERVICE_URL || "http://localhost:5001/wallet";
+const WALLET_SERVICE_URL = process.env.WALLET_SERVICE_URL || "http://localhost:5001/wallet";
 
 const walletClient = {
     async executeTransfer({
@@ -20,7 +19,6 @@ const walletClient = {
                     amount,
                 }
             );
-
             return response.data.data;
         } catch (error) {
             if (error.response) {
@@ -35,7 +33,6 @@ const walletClient = {
 
                 throw walletError;
             }
-
             throw new Error("Wallet service is unavailable.");
         }
     },
@@ -73,7 +70,6 @@ const walletClient = {
             const response = await axios.get(
                 `${WALLET_SERVICE_URL}/internal/wallets/transfers/${paymentId}`
             );
-
             return response.data.data;
         } catch (error) {
             if (error.response) {
