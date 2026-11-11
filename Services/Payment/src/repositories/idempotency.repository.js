@@ -12,7 +12,6 @@ class IdempotencyRepository {
             WHERE "userId" = ${userId}::uuid
               AND "idempotencyKey" = ${idempotencyKey}
         `;
-
         return record;
     }
 
