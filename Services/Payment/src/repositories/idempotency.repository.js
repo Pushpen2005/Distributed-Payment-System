@@ -4,7 +4,6 @@ class IdempotencyRepository {
             data,
         });
     }
-
     async findByUserAndKey(tx, userId, idempotencyKey) {
         const [record] = await tx.$queryRaw`
             SELECT *
@@ -14,7 +13,6 @@ class IdempotencyRepository {
         `;
         return record;
     }
-
     async attachPayment(tx, idempotencyRecordId, paymentId) {
         return tx.idempotencyKey.update({
             where: {
