@@ -23,7 +23,6 @@ class IdempotencyRepository {
             },
         });
     }
-
     async updateStatus(tx, id, status, response) {
         return tx.idempotencyKey.update({
             where: {
